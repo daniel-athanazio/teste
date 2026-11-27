@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Enviar Anúncio</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header><h1>📺 Enviar anúncio para a TV</h1></header>
+<main>
+  <div class="card" id="form"></div>
+  <p class="mut" style="text-align:center"><a id="gerenciar" href="#">Gerenciar anúncios</a></p>
+</main>
+<script src="form.js"></script>
+<script>
+  setupForm(document.getElementById('form'));
+  document.getElementById('gerenciar').href = '/admin.html?k=' + encodeURIComponent(TOKEN);
+</script>
+</body>
+</html>

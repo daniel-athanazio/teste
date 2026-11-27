@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Painel de Anúncios</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header><h1>📺 Painel de Anúncios</h1></header>
+<main>
+  <div class="grid">
+    <div class="card qr">
+      <h2>Enviar pelo celular</h2>
+      <img id="qrUpload" alt="QR code para enviar">
+      <p class="mut">Conecte o celular no mesmo Wi-Fi e escaneie</p>
+      <a id="uploadUrl" target="_blank"></a>
+    </div>
+    <div class="card">
+      <h2>Exibir na TV</h2>
+      <p>No navegador da Smart TV ou TV Box, digite:</p>
+      <p style="font-size:24px;font-weight:700;word-break:break-all" id="tvUrl"></p>
+      <p class="mut">Pressione OK/Enter na TV para tela cheia. Para vídeos com som, use o endereço com <code>?som=1</code> no final (alguns navegadores bloqueiam).</p>
+      <a class="btn sec" id="tvLink" target="_blank">Abrir prévia</a>
+      <label>Tempo padrão de cada imagem (segundos)</label>
+      <div class="row"><input type="number" id="padrao" min="1"><button class="sec" id="salvarPadrao" style="flex:0 0 auto">Salvar</button></div>
+    </div>
+    <div class="card qr">
+      <h2>Gerenciar pelo celular</h2>
+      <img id="qrAdmin" alt="QR code do painel">
+      <p class="mut">Abre este painel no celular</p>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>Novo anúncio</h2>
+    <div id="form"></div>
+  </div>
+
+  <div class="card">
+    <h2>Anúncios <span class="mut" id="resumo"></span></h2>
+    <div id="lista"><p class="mut">Carregando…</p></div>
+  </div>
+</main>
+
+<template id="tpl">
+  <div class="ad">
+    <div class="thumb"></div>
+    <div>
+      <div><strong class="t"></strong><span class="tag st"></span><span class="tag tp"></span></div>
+      <div class="row">
+        <div><label>Título</label><input type="text" data-f="titulo"></div>
+        <div><label>Começa em</label><input type="datetime-local" data-f="inicio"></div>
+        <div><label>Termina em</label><input type="datetime-local" data-f="fim"></div>
+        <div><label>Duração (s)</label><input type="number" min="0" data-f="duracao"></div>
+      </div>
+      <div class="acts">
+        <button class="salvar">Salvar</button>
+        <button class="sec alternar"></button>
+        <button class="sec sobe" title="Mover para cima">▲</button>
+        <button class="sec desce" title="Mover para baixo">▼</button>
+        <button class="del excluir">Excluir</button>
+      </div>
+    </div>
+  </div>
+</template>
+
+<script src="form.js"></script>
+<script>
+var anuncios = [];
+var $ = function (id) { return document.getElementById(id); };
+
+function status(a) {
+  if (!a.ativo) return ['Pausado', ''];
+  if (a.ativoAgora) return ['No ar', 'on'];
+  if (a.inicio && new Date(a.inicio) > new Date()) return ['Agendado', ''];
+  return ['Encerrado', ''];
+}
+
+function render() {
+  var lista = $('lista');
+  lista.innerHTML = '';
+  var noAr = anuncios.filter(function (a) { return a.ativoAgora; }).length;
+  $('resumo').textContent = '(' + anuncios.length + ' no total · ' + noAr + ' no ar agora)';
+  if (!anuncios.length) { lista.innerHTML = '<p class="mut">Nenhum anúncio ainda. Envie o primeiro acima ou pelo celular.</p>'; return; }
+  anuncios.forEach(function (a, i) {
+    var el = $('tpl').content.firstElementChild.cloneNode(true);
+    var src = '/media/' + a.arquivo;
+    el.querySelector('.thumb').innerHTML = a.tipo === 'video'
+      ? '<video src="' + src + '#t=1" muted preload="metadata"></video>'
+      : '<img src="' + src + '" loading="lazy">';
+    el.querySelector('.t').textContent = a.titulo || a.nomeOriginal;
+    var s = status(a);
+    el.querySelector('.st').textContent = s[0]; el.querySelector('.st').className = 'tag st ' + s[1];
+    el.querySelector('.tp').textContent = a.tipo === 'video' ? 'Vídeo' : 'Imagem';
+    el.querySelectorAll('[data-f]').forEach(function (inp) { inp.value = a[inp.dataset.f] || ''; });
+    el.querySelector('.alternar').textContent = a.ativo ? 'Pausar' : 'Ativar';
+
+    el.querySelector('.salvar').onclick = function () {
+      var body = {};
+      el.querySelectorAll('[data-f]').forEach(function (inp) { body[inp.dataset.f] = inp.value; });
+      api('PUT', '/api/anuncios/' + a.id, body).then(carregar).catch(alerta);
+    };
+    el.querySelector('.alternar').onclick = function () {
+      api('PUT', '/api/anuncios/' + a.id, { ativo: !a.ativo }).then(carregar).catch(alerta);
+    };
+    el.querySelector('.excluir').onclick = function () {
+      if (confirm('Excluir "' + (a.titulo || a.nomeOriginal) + '"?')) api('DELETE', '/api/anuncios/' + a.id).then(carregar).catch(alerta);
+    };
+    el.querySelector('.sobe').onclick = function () { mover(i, -1); };
+    el.querySelector('.desce').onclick = function () { mover(i, 1); };
+    lista.appendChild(el);
+  });
+}
+
+function mover(i, d) {
+  var j = i + d;
+  if (j < 0 || j >= anuncios.length) return;
+  var ids = anuncios.map(function (a) { return a.id; });
+  var t = ids[i]; ids[i] = ids[j]; ids[j] = t;
+  api('POST', '/api/ordem', { ids: ids }).then(carregar).catch(alerta);
+}
+
+function alerta(e) { alert(e.message); }
+function carregar() { return api('GET', '/api/anuncios').then(function (l) { anuncios = l; render(); }).catch(alerta); }
+
+api('GET', '/api/info').then(function (i) {
+  $('qrUpload').src = i.qrUpload; $('qrAdmin').src = i.qrAdmin;
+  $('uploadUrl').href = $('uploadUrl').textContent = i.uploadUrl;
+  $('tvUrl').textContent = i.tvUrl; $('tvLink').href = '/tv';
+  $('padrao').value = i.defaultImageSeconds;
+  if (!TOKEN) TOKEN = i.token;
+}).catch(alerta);
+
+$('salvarPadrao').onclick = function () {
+  api('PUT', '/api/config', { defaultImageSeconds: $('padrao').value }).then(function () { alert('Salvo!'); }).catch(alerta);
+};
+
+setupForm($('form'), carregar);
+carregar();
+// atualiza status a cada minuto, sem apagar uma edição em andamento
+setInterval(function () { if (!$('lista').contains(document.activeElement)) carregar(); }, 60000);
+</script>
+</body>
+</html>

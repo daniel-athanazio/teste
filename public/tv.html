@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Painel de Anúncios — TV</title>
+<style>
+  html, body { margin: 0; padding: 0; width: 100%; height: 100%; background: #000; overflow: hidden; cursor: none; }
+  .layer { position: absolute; top: 0; left: 0; width: 100%; height: 100%; opacity: 0;
+           -webkit-transition: opacity .8s; transition: opacity .8s; background: #000; }
+  .layer.show { opacity: 1; }
+  .layer img, .layer video { width: 100%; height: 100%; object-fit: contain; display: block; background: #000; }
+  #vazio { position: absolute; top: 0; left: 0; width: 100%; height: 100%; display: none; color: #888;
+           font-family: Arial, Helvetica, sans-serif; text-align: center; }
+  #vazio .box { position: absolute; top: 50%; left: 0; width: 100%; -webkit-transform: translateY(-50%); transform: translateY(-50%); }
+  #relogio { font-size: 12vw; color: #ddd; }
+  #msg { font-size: 2.4vw; margin-top: 2vw; }
+  #dica { position: absolute; bottom: 2vw; left: 0; width: 100%; text-align: center; color: #666;
+          font: 1.6vw Arial, sans-serif; display: none; }
+</style>
+</head>
+<body>
+<div id="a" class="layer"></div>
+<div id="b" class="layer"></div>
+<div id="vazio"><div class="box"><div id="relogio"></div><div id="msg">Nenhum anúncio programado para agora</div></div></div>
+<div id="dica">Pressione OK / Enter para tela cheia</div>
+
+<script>
+// Código em ES5 de propósito: funciona em navegadores antigos de Smart TV e TV Box.
+(function () {
+  var params = {};
+  location.search.replace(/[?&]([^=&]+)=?([^&]*)/g, function (m, k, v) { params[k] = decodeURIComponent(v); });
+  var COM_SOM = params.som === '1';
+  var ATUALIZA_MS = 20000;
+
+  var playlist = [], idx = -1, timer = null, layers = [document.getElementById('a'), document.getElementById('b')], cur = 0;
+  var vazio = document.getElementById('vazio');
+
+  function get(url, ok, fail) {
+    var x = new XMLHttpRequest();
+    x.open('GET', url + (url.indexOf('?') < 0 ? '?' : '&') + '_=' + Date.now(), true);
+    x.onreadystatechange = function () {
+      if (x.readyState !== 4) return;
+      if (x.status === 200) { try { ok(JSON.parse(x.responseText)); } catch (e) { fail && fail(); } }
+      else if (fail) fail();
+    };
+    x.send();
+  }
+
+  function sameList(a, b) {
+    if (a.length !== b.length) return false;
+    for (var i = 0; i < a.length; i++) if (a[i].id !== b[i].id || a[i].v !== b[i].v || a[i].duracao !== b[i].duracao) return false;
+    return true;
+  }
+
+  function carregar(primeira) {
+    get('/api/playlist', function (d) {
+      var nova = d.itens || [];
+      var mudou = !sameList(nova, playlist);
+      playlist = nova;
+      if (primeira || (mudou && (timer === null || !playlist.length))) proximo();
+    }, function () { if (primeira) setTimeout(function () { carregar(true); }, 5000); });
+  }
+
+  function mostrarVazio(sim) { vazio.style.display = sim ? 'block' : 'none'; }
+
+  function limpar(el) {
+    var v = el.getElementsByTagName('video')[0];
+    if (v) { try { v.pause(); v.removeAttribute('src'); v.load(); } catch (e) {} }
+    el.innerHTML = '';
+  }
+
+  function agendar(seg) { clearTimeout(timer); timer = setTimeout(proximo, Math.max(1, seg) * 1000); }
+
+  function proximo() {
+    clearTimeout(timer); timer = null;
+    if (!playlist.length) {
+      limpar(layers[0]); limpar(layers[1]);
+      layers[0].className = layers[1].className = 'layer';
+      mostrarVazio(true);
+      return;
+    }
+    mostrarVazio(false);
+    idx = (idx + 1) % playlist.length;
+    var item = playlist[idx];
+    var next = 1 - cur, el = layers[next];
+    limpar(el);
+
+    var trocar = function () {
+      el.className = 'layer show';
+      layers[cur].className = 'layer';
+      var antigo = layers[cur];
+      setTimeout(function () { if (antigo !== layers[cur]) limpar(antigo); }, 900);
+      cur = next;
+    };
+
+    if (item.tipo === 'video') {
+      var v = document.createElement('video');
+      v.muted = !COM_SOM; if (!COM_SOM) v.setAttribute('muted', '');
+      v.setAttribute('playsinline', ''); v.setAttribute('webkit-playsinline', '');
+      v.autoplay = true; v.preload = 'auto';
+      var iniciou = false;
+      v.onplaying = function () {
+        if (iniciou) return; iniciou = true; trocar();
+        if (item.duracao > 0) agendar(item.duracao);
+        else if (playlist.length === 1) { v.loop = true; clearTimeout(timer); }
+        else if (v.duration && isFinite(v.duration)) agendar(v.duration + 3); // segurança caso 'ended' não dispare
+        else clearTimeout(timer);
+      };
+      v.onended = function () { proximo(); };
+      v.onerror = function () { agendar(1); };
+      v.src = item.url;
+      el.appendChild(v);
+      var p = v.play && v.play();
+      if (p && p['catch']) p['catch'](function () { v.muted = true; v.play(); });
+      // segurança: se o vídeo travar sem começar, pula
+      agendar(item.duracao > 0 ? item.duracao + 15 : 30);
+    } else {
+      var img = new Image();
+      img.onload = function () { trocar(); agendar(item.duracao || 10); };
+      img.onerror = function () { agendar(1); };
+      img.src = item.url;
+      el.appendChild(img);
+    }
+  }
+
+  function relogio() {
+    var d = new Date(), h = d.getHours(), m = d.getMinutes();
+    document.getElementById('relogio').innerHTML = (h < 10 ? '0' : '') + h + ':' + (m < 10 ? '0' : '') + m;
+  }
+
+  function telaCheia() {
+    var e = document.documentElement;
+    var f = e.requestFullscreen || e.webkitRequestFullscreen || e.mozRequestFullScreen || e.msRequestFullscreen;
+    if (f) { try { f.call(e); } catch (x) {} }
+  }
+  document.addEventListener('keydown', function (e) { if (e.keyCode === 13) telaCheia(); });
+  document.addEventListener('click', telaCheia);
+
+  // Mantém a tela ligada onde o navegador permitir
+  function wake() { try { if (navigator.wakeLock) navigator.wakeLock.request('screen')['catch'](function () {}); } catch (e) {} }
+  document.addEventListener('visibilitychange', function () { if (!document.hidden) wake(); });
+  wake();
+
+  var dica = document.getElementById('dica');
+  dica.style.display = 'block'; setTimeout(function () { dica.style.display = 'none'; }, 6000);
+
+  relogio(); setInterval(relogio, 10000);
+  carregar(true);
+  setInterval(function () { carregar(false); }, ATUALIZA_MS);
+  // recarrega a página 1x por dia para liberar memória em TV boxes fracas
+  setTimeout(function () { location.reload(); }, 24 * 3600 * 1000);
+})();
+</script>
+</body>
+</html>
