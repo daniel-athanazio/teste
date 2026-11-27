@@ -38,6 +38,54 @@
   </div>
 
   <div class="card">
+    <h2>Redes sociais</h2>
+    <p class="mut">Os posts novos do Instagram e da Página do Facebook entram sozinhos na TV (o computador precisa de internet).
+      A verificação acontece a cada <span id="intervalo">10</span> minutos.</p>
+    <div class="redes">
+      <fieldset>
+        <legend>Instagram</legend>
+        <label class="check"><input type="checkbox" id="igAtivo"> Importar posts do Instagram</label>
+        <label>Token de acesso <span class="mut" id="igTem"></span></label>
+        <input type="password" id="igToken" placeholder="Cole aqui o token do Instagram" autocomplete="off">
+        <details><summary>Como conseguir o token</summary><ol>
+          <li>A conta precisa ser <b>Profissional</b> (Empresa ou Criador de conteúdo). Isso é grátis e se muda no app do Instagram, em Configurações → Tipo de conta.</li>
+          <li>Entre em <b>developers.facebook.com</b> → Meus apps → Criar app → tipo “Empresa”, e adicione o produto <b>Instagram</b> (“API com login do Instagram”).</li>
+          <li>Em “Gerar tokens de acesso”, adicione sua conta do Instagram e clique em <b>Gerar token</b>.</li>
+          <li>Copie o token e cole acima. O painel renova o token sozinho antes de ele vencer.</li>
+        </ol></details>
+      </fieldset>
+      <fieldset>
+        <legend>Facebook (Página)</legend>
+        <label class="check"><input type="checkbox" id="fbAtivo"> Importar posts da Página</label>
+        <label>ID da Página</label>
+        <input type="text" id="fbPage" placeholder="Ex.: 123456789012345">
+        <label>Token de acesso da Página <span class="mut" id="fbTem"></span></label>
+        <input type="password" id="fbToken" placeholder="Cole aqui o token da Página" autocomplete="off">
+        <details><summary>Como conseguir o ID e o token</summary><ol>
+          <li>Funciona com <b>Páginas</b> do Facebook, não com perfis pessoais.</li>
+          <li>O ID aparece na Página em Sobre → Transparência da Página, ou em Configurações.</li>
+          <li>Em <b>developers.facebook.com</b>, crie um app do tipo “Empresa” e abra o <b>Explorador da Graph API</b>.</li>
+          <li>Escolha o app, clique em “Obter token” → “Token de acesso da Página”, marque <code>pages_read_engagement</code> e escolha a sua Página.</li>
+          <li>Para não vencer em 1 hora, troque-o por um token de longa duração no <b>Depurador de token de acesso</b> (“Estender token de acesso”).</li>
+        </ol></details>
+      </fieldset>
+    </div>
+    <div class="row" style="margin-top:8px">
+      <div><label>Posts recentes a verificar</label><input type="number" id="quantidade" min="1" max="25"></div>
+      <div><label>Dias no ar (0 = sempre)</label><input type="number" id="diasExibir" min="0"></div>
+      <div><label>Segundos na tela</label><input type="number" id="socialDuracao" min="3"></div>
+    </div>
+    <label class="check" style="margin-top:12px"><input type="checkbox" id="mostrarLegenda"> Mostrar a legenda do post na TV</label>
+    <div class="acts" style="margin-top:12px">
+      <button id="salvarSocial">Salvar</button>
+      <button class="sec" id="sincronizar">Sincronizar agora</button>
+    </div>
+    <div class="msg" id="socialMsg"></div>
+    <p class="mut"><b>WhatsApp:</b> o WhatsApp não permite que outros programas leiam os Status. Para mostrar um Status na TV,
+      salve a foto ou o vídeo no celular e envie pelo QR code “Enviar pelo celular”.</p>
+  </div>
+
+  <div class="card">
     <h2>Anúncios <span class="mut" id="resumo"></span></h2>
     <div id="lista"><p class="mut">Carregando…</p></div>
   </div>
@@ -54,6 +102,7 @@
         <div><label>Termina em</label><input type="datetime-local" data-f="fim"></div>
         <div><label>Duração (s)</label><input type="number" min="0" data-f="duracao"></div>
       </div>
+      <div class="extra"></div>
       <div class="acts">
         <button class="salvar">Salvar</button>
         <button class="sec alternar"></button>
@@ -85,14 +134,33 @@ function render() {
   if (!anuncios.length) { lista.innerHTML = '<p class="mut">Nenhum anúncio ainda. Envie o primeiro acima ou pelo celular.</p>'; return; }
   anuncios.forEach(function (a, i) {
     var el = $('tpl').content.firstElementChild.cloneNode(true);
-    var src = '/media/' + a.arquivo;
-    el.querySelector('.thumb').innerHTML = a.tipo === 'video'
-      ? '<video src="' + src + '#t=1" muted preload="metadata"></video>'
-      : '<img src="' + src + '" loading="lazy">';
+    var src = '/media/' + a.arquivo, th = el.querySelector('.thumb');
+    if (a.tipo === 'texto') {
+      th.classList.add('txt'); th.style.background = a.corFundo; th.style.color = a.corTexto; th.textContent = a.texto;
+    } else {
+      th.innerHTML = a.tipo === 'video'
+        ? '<video src="' + src + '#t=1" muted preload="metadata"></video>'
+        : '<img src="' + src + '" loading="lazy">';
+    }
+    var ex = el.querySelector('.extra');
+    if (a.tipo === 'texto') {
+      ex.innerHTML = '<label>Texto</label><textarea rows="3" data-f="texto"></textarea>' +
+        '<div class="row"><div><label>Cor do fundo</label><input type="color" data-f="corFundo"></div>' +
+        '<div><label>Cor do texto</label><input type="color" data-f="corTexto"></div>' +
+        '<div><label>Tamanho</label><select data-f="tamanho"><option value="P">Pequena</option><option value="M">Média</option><option value="G">Grande</option></select></div></div>';
+    } else if (a.origem) {
+      ex.innerHTML = '<label>Legenda na TV</label><textarea rows="2" data-f="legenda"></textarea>';
+    }
     el.querySelector('.t').textContent = a.titulo || a.nomeOriginal;
     var s = status(a);
     el.querySelector('.st').textContent = s[0]; el.querySelector('.st').className = 'tag st ' + s[1];
-    el.querySelector('.tp').textContent = a.tipo === 'video' ? 'Vídeo' : 'Imagem';
+    el.querySelector('.tp').textContent = { video: 'Vídeo', imagem: 'Imagem', texto: 'Texto' }[a.tipo];
+    if (a.origem) {
+      var tg = document.createElement(a.link ? 'a' : 'span');
+      tg.className = 'tag ' + a.origem; tg.textContent = a.origem === 'instagram' ? 'Instagram' : 'Facebook';
+      if (a.link) { tg.href = a.link; tg.target = '_blank'; tg.rel = 'noopener'; }
+      el.querySelector('.tp').after(tg);
+    }
     el.querySelectorAll('[data-f]').forEach(function (inp) { inp.value = a[inp.dataset.f] || ''; });
     el.querySelector('.alternar').textContent = a.ativo ? 'Pausar' : 'Ativar';
 
@@ -135,6 +203,46 @@ api('GET', '/api/info').then(function (i) {
 $('salvarPadrao').onclick = function () {
   api('PUT', '/api/config', { defaultImageSeconds: $('padrao').value }).then(function () { alert('Salvo!'); }).catch(alerta);
 };
+
+// ----- redes sociais -----
+function mostrarSocial(s) {
+  $('igAtivo').checked = s.instagram.ativo; $('fbAtivo').checked = s.facebook.ativo;
+  $('igTem').textContent = s.instagram.temToken ? '(já configurado — cole outro só para trocar)' : '';
+  $('fbTem').textContent = s.facebook.temToken ? '(já configurado — cole outro só para trocar)' : '';
+  $('fbPage').value = s.facebook.pageId || '';
+  $('quantidade').value = s.quantidade; $('diasExibir').value = s.diasExibir;
+  $('socialDuracao').value = s.duracao; $('mostrarLegenda').checked = s.mostrarLegenda;
+  $('intervalo').textContent = s.intervaloMin;
+  var m = $('socialMsg'), erros = Object.keys(s.erros || {});
+  if (s.sincronizando) { m.textContent = 'Sincronizando…'; m.className = 'msg'; }
+  else if (erros.length) {
+    m.textContent = erros.map(function (k) { return (k === 'instagram' ? 'Instagram' : 'Facebook') + ': ' + s.erros[k]; }).join(' · ');
+    m.className = 'msg err';
+  } else if (s.ultima) {
+    m.textContent = 'Última verificação: ' + new Date(s.ultima).toLocaleString('pt-BR') + (s.novos ? ' · ' + s.novos + ' post(s) novo(s)' : '');
+    m.className = 'msg ok';
+  } else { m.textContent = ''; }
+}
+function dadosSocial() {
+  return {
+    instagram: { ativo: $('igAtivo').checked, token: $('igToken').value },
+    facebook: { ativo: $('fbAtivo').checked, pageId: $('fbPage').value, token: $('fbToken').value },
+    quantidade: $('quantidade').value, diasExibir: $('diasExibir').value,
+    duracao: $('socialDuracao').value, mostrarLegenda: $('mostrarLegenda').checked,
+  };
+}
+$('salvarSocial').onclick = function () {
+  api('PUT', '/api/social', dadosSocial()).then(function (s) {
+    $('igToken').value = ''; $('fbToken').value = ''; mostrarSocial(s); alert('Salvo!');
+  }).catch(alerta);
+};
+$('sincronizar').onclick = function () {
+  $('socialMsg').textContent = 'Sincronizando…'; $('socialMsg').className = 'msg';
+  api('PUT', '/api/social', dadosSocial())
+    .then(function () { $('igToken').value = ''; $('fbToken').value = ''; return api('POST', '/api/social/sincronizar'); })
+    .then(function (s) { mostrarSocial(s); carregar(); }).catch(alerta);
+};
+api('GET', '/api/social').then(mostrarSocial).catch(alerta);
 
 setupForm($('form'), carregar);
 carregar();

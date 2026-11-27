@@ -15,6 +15,15 @@
   #vazio .box { position: absolute; top: 50%; left: 0; width: 100%; -webkit-transform: translateY(-50%); transform: translateY(-50%); }
   #relogio { font-size: 12vw; color: #ddd; }
   #msg { font-size: 2.4vw; margin-top: 2vw; }
+  .texto { display: table; width: 100%; height: 100%; }
+  .texto div { display: table-cell; vertical-align: middle; text-align: center; padding: 4vw 6vw;
+               white-space: pre-line; font-family: Arial, Helvetica, sans-serif; font-weight: bold; line-height: 1.25; }
+  .legenda { position: absolute; left: 0; right: 0; bottom: 0; padding: 6vw 4vw 2.5vw; color: #fff;
+             font: 2.4vw/1.35 Arial, Helvetica, sans-serif; text-shadow: 0 1px 3px #000;
+             background: -webkit-linear-gradient(top, rgba(0,0,0,0), rgba(0,0,0,.85));
+             background: linear-gradient(to bottom, rgba(0,0,0,0), rgba(0,0,0,.85)); }
+  .legenda .rede { display: table; font-weight: bold; font-size: 1.8vw; padding: .3vw 1vw; border-radius: 99px; margin-bottom: .8vw; }
+  .rede.instagram { background: #c13584; } .rede.facebook { background: #1877f2; }
   #dica { position: absolute; bottom: 2vw; left: 0; width: 100%; text-align: center; color: #666;
           font: 1.6vw Arial, sans-serif; display: none; }
 </style>
@@ -83,7 +92,7 @@
     mostrarVazio(false);
     idx = (idx + 1) % playlist.length;
     var item = playlist[idx];
-    var next = 1 - cur, el = layers[next];
+    var next = 1 - cur, el = layers[next], leg = null;
     limpar(el);
 
     var trocar = function () {
@@ -93,6 +102,35 @@
       setTimeout(function () { if (antigo !== layers[cur]) limpar(antigo); }, 900);
       cur = next;
     };
+
+    if (item.legenda || item.origem) {
+      var leg = document.createElement('div'); leg.className = 'legenda';
+      if (item.origem) {
+        var r = document.createElement('div'); r.className = 'rede ' + item.origem;
+        r.appendChild(document.createTextNode(item.origem === 'instagram' ? 'Instagram' : 'Facebook'));
+        leg.appendChild(r);
+      }
+      if (item.legenda) {
+        var t = item.legenda.length > 220 ? item.legenda.slice(0, 217) + '…' : item.legenda;
+        leg.appendChild(document.createTextNode(t));
+      }
+    }
+
+    if (item.tipo === 'texto') {
+      var box = document.createElement('div'); box.className = 'texto';
+      box.style.background = item.corFundo || '#1e3a8a';
+      var tx = document.createElement('div');
+      tx.style.color = item.corTexto || '#fff';
+      var tam = { P: 4, M: 6, G: 9 }[item.tamanho] || 6;
+      tx.style.fontSize = tam + 'vw';
+      tx.appendChild(document.createTextNode(item.texto || ''));
+      box.appendChild(tx); el.appendChild(box);
+      if (leg) el.appendChild(leg);
+      // diminui a fonte até o texto caber na tela
+      while (tam > 2 && box.scrollHeight > el.clientHeight + 2) { tam -= 0.5; tx.style.fontSize = tam + 'vw'; }
+      trocar(); agendar(item.duracao || 10);
+      return;
+    }
 
     if (item.tipo === 'video') {
       var v = document.createElement('video');
@@ -111,6 +149,7 @@
       v.onerror = function () { agendar(1); };
       v.src = item.url;
       el.appendChild(v);
+      if (leg) el.appendChild(leg);
       var p = v.play && v.play();
       if (p && p['catch']) p['catch'](function () { v.muted = true; v.play(); });
       // segurança: se o vídeo travar sem começar, pula
@@ -121,6 +160,7 @@
       img.onerror = function () { agendar(1); };
       img.src = item.url;
       el.appendChild(img);
+      if (leg) el.appendChild(leg);
     }
   }
 

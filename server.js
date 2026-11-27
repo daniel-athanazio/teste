@@ -71,6 +71,8 @@ function isActive(ad, now = Date.now()) {
   return true;
 }
 
+const COR = /^#[0-9a-fA-F]{6}$/;
+
 function sanitizeFields(body, ad) {
   if (body.titulo !== undefined) ad.titulo = String(body.titulo).slice(0, 120);
   if (body.inicio !== undefined) ad.inicio = body.inicio || null;
@@ -80,6 +82,13 @@ function sanitizeFields(body, ad) {
     ad.duracao = Number.isFinite(d) && d > 0 ? Math.min(d, 3600) : 0; // 0 = vídeo inteiro / padrão
   }
   if (body.ativo !== undefined) ad.ativo = body.ativo === true || body.ativo === 'true' || body.ativo === 'on';
+  // anúncios de texto
+  if (body.texto !== undefined) ad.texto = String(body.texto).slice(0, 1000);
+  if (body.corFundo !== undefined && COR.test(body.corFundo)) ad.corFundo = body.corFundo;
+  if (body.corTexto !== undefined && COR.test(body.corTexto)) ad.corTexto = body.corTexto;
+  if (body.tamanho !== undefined && ['P', 'M', 'G'].includes(body.tamanho)) ad.tamanho = body.tamanho;
+  // legenda exibida sobre a imagem/vídeo (posts de redes sociais)
+  if (body.legenda !== undefined) ad.legenda = String(body.legenda).slice(0, 300);
   return ad;
 }
 
@@ -147,8 +156,11 @@ app.get('/api/playlist', (req, res) => {
     itens: ads.filter(a => isActive(a, now)).map(a => ({
       id: a.id,
       tipo: a.tipo,
-      url: '/media/' + a.arquivo,
-      duracao: a.duracao || (a.tipo === 'imagem' ? config.defaultImageSeconds : 0),
+      url: a.arquivo ? '/media/' + a.arquivo : null,
+      duracao: a.duracao || (a.tipo === 'video' ? 0 : config.defaultImageSeconds),
+      texto: a.texto, corFundo: a.corFundo, corTexto: a.corTexto, tamanho: a.tamanho,
+      legenda: social.config().mostrarLegenda !== false ? a.legenda : '',
+      origem: a.origem,
       v: a.atualizadoEm,
     })),
   });
@@ -182,6 +194,22 @@ app.post('/api/anuncios', requireToken, upload.array('arquivos', 50), (req, res)
   res.json({ ok: true, criados: created.length });
 });
 
+// Anúncio só de texto
+app.post('/api/anuncios/texto', requireToken, (req, res) => {
+  const ad = sanitizeFields(req.body, {
+    id: crypto.randomUUID(), titulo: '', tipo: 'texto', texto: '',
+    corFundo: '#1e3a8a', corTexto: '#ffffff', tamanho: 'M',
+    inicio: null, fim: null, duracao: 0, ativo: true, criadoEm: Date.now(),
+  });
+  if (!ad.texto.trim()) return res.status(400).json({ erro: 'Escreva o texto do anúncio.' });
+  if (!ad.titulo) ad.titulo = ad.texto.trim().split('\n')[0].slice(0, 60);
+  ad.ativo = req.body.ativo === undefined ? true : ad.ativo;
+  ad.atualizadoEm = Date.now();
+  ads.push(ad);
+  saveAds();
+  res.json({ ok: true, criados: 1 });
+});
+
 app.put('/api/anuncios/:id', requireToken, (req, res) => {
   const ad = ads.find(a => a.id === req.params.id);
   if (!ad) return res.status(404).json({ erro: 'Anúncio não encontrado' });
@@ -205,8 +233,22 @@ app.delete('/api/anuncios/:id', requireToken, (req, res) => {
   if (i < 0) return res.status(404).json({ erro: 'Anúncio não encontrado' });
   const [ad] = ads.splice(i, 1);
   saveAds();
-  fs.unlink(path.join(MEDIA_DIR, ad.arquivo), () => {});
+  if (ad.arquivo) fs.unlink(path.join(MEDIA_DIR, ad.arquivo), () => {});
   res.json({ ok: true });
+});
+
+// ---------- redes sociais ----------
+const social = require('./social')({
+  config, saveConfig: () => writeJson(CONFIG_FILE, config), MEDIA_DIR,
+  hasExternal: id => ads.some(a => a.externalId === id),
+  addAd: ad => { ads.push(ad); saveAds(); },
+});
+
+app.get('/api/social', requireToken, (req, res) => res.json(social.publicState()));
+app.put('/api/social', requireToken, (req, res) => { social.update(req.body || {}); res.json(social.publicState()); });
+app.post('/api/social/sincronizar', requireToken, async (req, res) => {
+  await social.sync();
+  res.json(social.publicState());
 });
 
 app.use((err, req, res, next) => {
@@ -224,4 +266,5 @@ app.listen(PORT, '0.0.0.0', () => {
   QRCode.toString(`${b}/upload.html?k=${config.token}`, { type: 'terminal', small: true })
     .then(q => console.log('QR code para enviar pelo celular:\n' + q))
     .catch(() => {});
+  social.start();
 });
