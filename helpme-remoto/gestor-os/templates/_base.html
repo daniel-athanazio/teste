@@ -1,0 +1,27 @@
+<!doctype html><html lang="pt-BR"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>{% block titulo %}Gestor de OS{% endblock %}</title>
+<style>
+:root{--bg:#f4f5f7;--card:#fff;--tx:#16202c;--mut:#667385;--lin:#e2e6ec;--pri:#0b5cad;--ok:#1a7f4b;--al:#c62828;--am:#b26a00}
+.tv{--bg:#0d141d;--card:#17212e;--tx:#eef2f6;--mut:#93a1b3;--lin:#263445;--pri:#5aa9f0;--ok:#4ecb86;--al:#ff6b6b;--am:#ffb84d}
+*{box-sizing:border-box}body{margin:0;font:15px/1.45 system-ui,Segoe UI,Roboto,sans-serif;background:var(--bg);color:var(--tx)}
+a{color:var(--pri);text-decoration:none}.wrap{max-width:1500px;margin:0 auto;padding:16px}
+.card{background:var(--card);border:1px solid var(--lin);border-radius:12px;padding:14px}
+h1{font-size:20px;margin:0}h2{font-size:15px;margin:0 0 8px;color:var(--mut);font-weight:600;text-transform:uppercase;letter-spacing:.04em}
+.mut{color:var(--mut)}.al{color:var(--al)}.ok{color:var(--ok)}
+input,textarea,button{font:inherit;border-radius:8px;border:1px solid var(--lin);padding:10px 12px;background:var(--card);color:var(--tx)}
+button,.btn{background:var(--pri);color:#fff;border:0;cursor:pointer;font-weight:600;border-radius:8px;padding:10px 16px;display:inline-block}
+.mini{max-width:420px;margin:8vh auto;padding:16px}.mini .card{padding:24px}.mini input,.mini textarea,.mini button{width:100%;margin-top:10px}
+.nav{display:flex;gap:6px}.nav a{padding:8px 14px;border-radius:8px;border:1px solid var(--lin);color:var(--tx);font-weight:600;background:var(--card)}
+.nav a.at{background:var(--tx);color:var(--bg);border-color:var(--tx)}.nav .bola{background:var(--al);color:#fff;border-radius:99px;padding:0 7px;font-size:12px;margin-left:4px}
+.verm{border-color:var(--al)!important;box-shadow:inset 0 0 0 1px var(--al)}.pisca{animation:pisca 1.6s infinite}@keyframes pisca{50%{opacity:.55}}
+.alerta{background:var(--al);color:#fff;padding:10px 14px;border-radius:8px;margin-bottom:12px;font-weight:600}.alerta a{color:#fff;text-decoration:underline}
+.graf{display:grid;grid-template-columns:repeat(auto-fit,minmax(340px,1fr));gap:10px;margin-bottom:12px}
+.cols{display:flex;align-items:flex-end;gap:10px;height:150px;margin-top:10px}.cols>div{flex:1;display:flex;flex-direction:column;align-items:center;height:100%;justify-content:flex-end;font-size:11px;color:var(--mut)}
+.cols .par{display:flex;align-items:flex-end;gap:3px;height:100%;width:100%;justify-content:center}.cols i{display:block;width:42%;max-width:26px;border-radius:4px 4px 0 0;position:relative;min-height:2px}
+.cols i span{position:absolute;top:-16px;left:50%;transform:translateX(-50%);font-style:normal;color:var(--tx);font-size:11px}
+.ca{background:var(--pri)}.cb{background:var(--ok)}.leg{font-size:12px;color:var(--mut)}.leg b{display:inline-block;width:10px;height:10px;border-radius:2px;margin:0 4px 0 10px}
+.hb{display:grid;grid-template-columns:150px 1fr 34px;gap:8px;align-items:center;margin:7px 0;font-size:13px}.hb div{height:14px;background:var(--lin);border-radius:9px;overflow:hidden;display:flex}
+.hb div i{display:block;height:100%;background:var(--pri)}.hb div i.r{background:var(--al)}.hb b{text-align:right}
+{% block css %}{% endblock %}
+</style></head><body class="{% block corpo %}{% endblock %}">{% block conteudo %}{% endblock %}</body></html>

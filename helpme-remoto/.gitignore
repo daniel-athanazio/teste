@@ -1,0 +1,14 @@
+# dados locais e segredos: nunca vão para o repositório
+servidor/data/
+deploy/.env
+deploy/gestor.env
+deploy/helpme-dados/
+deploy/gestor-dados/
+gestor-os/.env
+gestor-os/*.db*
+*.key
+senha_admin_inicial.txt
+agente/HelpMe.exe
+agente/*.exe
+agente/*.syso
+__pycache__/

@@ -1,0 +1,14 @@
+{% extends "_base.html" %}
+{% block titulo %}Avaliação — {{ loja }}{% endblock %}
+{% block css %}.st{display:flex;flex-direction:row-reverse;justify-content:center;gap:6px;margin:14px 0}.st input{display:none}
+.st label{font-size:44px;color:var(--lin);cursor:pointer}.st input:checked~label,.st label:hover,.st label:hover~label{color:#f5a623}{% endblock %}
+{% block conteudo %}
+<div class="mini" style="max-width:480px"><div class="card" style="text-align:center">
+ <span class="mut">{{ loja }} · OS {{ codigo }}</span>
+ {% if feita %}<h1>Obrigado pela avaliação!</h1><p>Sua opinião ajuda a melhorar nosso atendimento.</p>
+ {% else %}<h1>Como foi o nosso atendimento?</h1>
+ <form method="post"><div class="st">{% for n in [5,4,3,2,1] %}<input type="radio" name="nota" id="n{{ n }}" value="{{ n }}" required><label for="n{{ n }}">★</label>{% endfor %}</div>
+ <textarea name="comentario" rows="4" placeholder="Críticas, sugestões ou elogios (opcional)"></textarea><button>Enviar avaliação</button></form>{% endif %}
+</div>
+ <p class="mut" style="text-align:center;font-size:12px;margin-top:10px"><a href="/privacidade">Aviso de privacidade</a></p></div>
+{% endblock %}

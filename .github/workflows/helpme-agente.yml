@@ -1,0 +1,19 @@
+# Compila o HelpMe.exe a cada alteração do agente e deixa para baixar em Actions › (execução) › Artifacts.
+name: Help me! - HelpMe.exe
+on:
+  push:
+    paths: ["helpme-remoto/agente/**", ".github/workflows/helpme-agente.yml"]
+  workflow_dispatch:
+jobs:
+  compilar:
+    runs-on: ubuntu-latest
+    defaults: { run: { working-directory: helpme-remoto/agente } }
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with: { go-version: "1.24", cache-dependency-path: helpme-remoto/agente/go.sum }
+      - run: go vet ./... && GOOS=windows go vet ./... || true
+      - run: go install github.com/tc-hib/go-winres@v0.3.3
+      - run: ./compilar.sh HelpMe.exe
+      - uses: actions/upload-artifact@v4
+        with: { name: HelpMe-exe, path: helpme-remoto/agente/HelpMe.exe }

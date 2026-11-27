@@ -1,0 +1,13 @@
+{% extends "_base.html" %}{% block titulo %}Privacidade — {{ loja }}{% endblock %}
+{% block conteudo %}
+<div class="mini" style="max-width:640px"><div class="card">
+ <h1>Aviso de privacidade</h1>
+ <p><b>{{ loja }}</b> usa esta página para informar o andamento de ordens de serviço e de chamados de suporte.</p>
+ <p><b>Dados usados:</b> nome, telefone, os 4 últimos dígitos do CPF/CNPJ (apenas para confirmar a consulta), dados do equipamento e do serviço, e a avaliação que você enviar.</p>
+ <p><b>Finalidade:</b> executar o serviço contratado, informar o andamento, cumprir a garantia e medir a qualidade do atendimento. Os dados não são vendidos nem usados para publicidade de terceiros.</p>
+ <p><b>Compartilhamento:</b> o equipamento pode ser enviado a uma assistência parceira quando o reparo exigir; avisos são enviados pelo WhatsApp.</p>
+ <p><b>Guarda:</b> os dados pessoais das ordens encerradas são apagados deste painel após {{ meses }} meses. Registros exigidos por lei permanecem no sistema de gestão da loja pelo prazo legal.</p>
+ <p><b>Seus direitos:</b> você pode pedir acesso, correção ou exclusão dos seus dados{% if zap %} pelo WhatsApp <a href="https://wa.me/{{ zap }}">+{{ zap }}</a>{% else %} diretamente na loja{% endif %}.</p>
+ <p class="mut" style="margin-bottom:0">Tratamento conforme a Lei nº 13.709/2018 (LGPD).</p>
+</div></div>
+{% endblock %}

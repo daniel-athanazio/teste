@@ -1,0 +1,134 @@
+{% extends "_base.html" %}
+{% block titulo %}Configuração — {{ loja }}{% endblock %}
+{% block css %}
+.topo{display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin-bottom:14px}.topo .esp{flex:1}
+form.cfg{display:grid;gap:12px;max-width:900px}fieldset{border:1px solid var(--lin);border-radius:12px;background:var(--card);padding:14px 16px;margin:0}
+legend{font-weight:700;padding:0 6px}.g{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:10px;align-items:start}
+label{display:flex;flex-direction:column;gap:4px;font-size:13px;color:var(--mut)}label input{width:100%}label.ck{flex-direction:row;align-items:center;gap:8px}label.ck input{width:auto}
+label.erro input{border:2px solid var(--al);background:rgba(198,40,40,.06)}label.erro small{color:var(--al);font-weight:600;font-size:12.5px}
+label.certo input{border:2px solid var(--ok)}label.certo small{color:var(--ok);font-weight:600}
+.okb{background:var(--ok);color:#fff;padding:10px 14px;border-radius:8px;font-weight:600;max-width:900px;margin-bottom:12px}
+.res{max-width:900px;margin-bottom:12px;border-width:2px}.res.bom{border-color:var(--ok)}.res.ruim{border-color:var(--al)}
+.sec{background:var(--card);color:var(--tx);border:1px solid var(--lin)}.fim{display:flex;gap:10px;flex-wrap:wrap;align-items:end}
+table{border-collapse:collapse;width:100%}td,th{padding:5px 8px;border-bottom:1px solid var(--lin);text-align:left;font-size:13px}code{font-size:12px;word-break:break-word}
+select{font:inherit;border-radius:8px;border:1px solid var(--lin);padding:6px 8px;background:var(--card);color:var(--tx)}
+{% endblock %}
+{% macro campo(nome, rotulo, tipo='text', valor=None, dica='', extra='') %}
+<label class="{{ 'erro' if campos.get(nome) else ('certo' if teste and teste.ok and nome in ('UNIPLUS_SERVIDOR','UNIPLUS_CONTA','UNIPLUS_AUTORIZACAO') else '') }}">{{ rotulo }}
+ <input type="{{ tipo }}" name="{{ nome }}" value="{{ valor if valor is not none else '' }}" placeholder="{{ dica }}" {{ extra|safe }}>
+ {% if campos.get(nome) %}<small>⚠ {{ campos[nome] }}</small>{% elif teste and teste.ok and nome in ('UNIPLUS_SERVIDOR','UNIPLUS_CONTA','UNIPLUS_AUTORIZACAO') %}<small>✓ conferido</small>{% endif %}</label>
+{% endmacro %}
+{% block conteudo %}
+<div class="wrap">
+ <div class="topo"><h1>{{ loja }}</h1><div class="nav"><a href="/painel">Ordens de serviço</a><a href="/terceirizada">Terceirizada</a><a href="/chamados">Chamados</a><a class="at" href="/config">Configuração</a></div><span class="esp"></span>
+  <form method="post"><button class="sec" name="acao" value="fechar">Fechar configuração</button></form></div>
+
+ {% if msg %}<div class="okb">✓ {{ msg }}</div>{% endif %}
+ {% if campos and not msg %}<div class="alerta" style="max-width:900px">Nada foi salvo. Corrija {{ 'o campo marcado' if campos|length == 1 else 'os campos marcados' }} em vermelho.</div>{% endif %}
+
+ {% if teste %}<div class="card res {{ 'bom' if teste.ok else 'ruim' }}"><h2>Teste de conexão com o Uniplus</h2>
+  {% if not teste.ok %}<p class="al" style="margin:0"><b>✗ Não conectou.</b> Veja o aviso no campo marcado em vermelho abaixo.{% if teste.erro %} <span class="mut">({{ teste.erro }})</span>{% endif %}</p>
+  {% else %}<p class="ok" style="margin-top:0"><b>✓ Conexão correta.</b> {{ teste.n }} OS lidas na amostra.{% if acao == 'testar' %} Ainda não foi salvo: confira e clique em Salvar.{% endif %}</p>
+   {% if teste.vazios %}<p class="al"><b>Atenção:</b> vieram vazios em toda a amostra: {{ teste.vazios|join(', ') }}.</p>{% endif %}
+   {% if teste.mapa %}<table><tr><th>Status no Uniplus</th><th>Coluna do painel</th><th>Qtd.</th></tr>{% for st, col, n in teste.mapa %}<tr><td>{{ st }}</td><td>{{ col }}</td><td>{{ n }}</td></tr>{% endfor %}</table>
+   <details style="margin-top:8px"><summary class="mut">Detalhes técnicos</summary><p class="mut" style="margin-bottom:4px">Campos que a API devolve:</p><code>{{ teste.nomes|join(', ') }}</code>
+   <p class="mut" style="margin-bottom:4px">Leitura da primeira OS (cliente e telefone ocultos):</p><code>{% for k, x in teste.leitura.items() %}{{ k }}={{ x if x not in (None, '') else '(vazio)' }}{{ '; ' if not loop.last }}{% endfor %}</code></details>{% endif %}
+  {% endif %}</div>{% endif %}
+
+ <form class="cfg" method="post" autocomplete="off">
+  <fieldset><legend>Uniplus Web</legend>
+   <p class="mut" style="margin-top:0">Situação salva: {% if c.DEMO %}<b class="al">não conectado (dados de demonstração)</b>{% else %}<b class="ok">configurado</b>{% endif %}</p>
+   <div class="g">
+   {{ campo('UNIPLUS_SERVIDOR', 'Endereço do servidor', valor=v.UNIPLUS_SERVIDOR, dica='https://sualoja.getcard.uniplusweb.com') }}
+   {{ campo('UNIPLUS_CONTA', 'Conta da API (em branco se usar o código pronto)', valor=v.UNIPLUS_CONTA) }}
+   {{ campo('UNIPLUS_AUTORIZACAO', 'Chave da API / código de autorização ' ~ ('(digitada, ainda não salva)' if aut_dig else ('(salva: ' ~ aut ~ ')' if aut else '(não informada)')), tipo='password', dica=('deixe em branco para manter' if aut or aut_dig else 'cole a chave aqui'), extra='autocomplete="new-password"') }}
+   {{ campo('SYNC_MINUTOS', 'Atualizar a cada (minutos)', valor=v.SYNC_MINUTOS, extra='inputmode="numeric"') }}</div>
+   <p style="margin:12px 0 0"><button class="sec" name="acao" value="testar" formnovalidate>Testar conexão com o Uniplus</button>
+   <span class="mut"> O teste usa o que está digitado acima e não salva nada.</span></p></fieldset>
+
+  <fieldset><legend>Período exibido no painel</legend>
+   <p class="mut" style="margin-top:0">O painel mostra só as OS abertas dentro deste período. Em branco = sem limite. O gráfico de 12 meses × ano anterior não é afetado.</p>
+   <div class="g">{{ campo('PERIODO_INI', 'De', tipo='date', valor=v.PERIODO_INI) }}{{ campo('PERIODO_FIM', 'Até (em branco = até hoje)', tipo='date', valor=v.PERIODO_FIM) }}</div></fieldset>
+
+  {% if eventos %}<fieldset><legend>Eventos do Uniplus → coluna do painel</legend>
+   <p class="mut" style="margin-top:0">A coluna de cada OS é definida pelo último evento lançado nela no Uniplus. Cancelada e Finalizada vêm direto do status. Em "Automático" o gestor decide pelo nome do evento (mostrado ao lado).</p>
+   <table><tr><th>Último evento da OS</th><th>OS</th><th>Coluna</th></tr>
+   {% for r in eventos %}<tr><td>{{ r.ev }}<input type="hidden" name="evn_{{ loop.index }}" value="{{ r.ev }}"></td><td>{{ r.n }}</td>
+    <td><select name="evs_{{ loop.index }}"><option value="">Automático ({{ r.auto }})</option>{% for k, t, _ in situacoes %}<option value="{{ k }}" {{ 'selected' if r.esc == k }}>{{ t }}</option>{% endfor %}</select></td></tr>{% endfor %}</table></fieldset>{% endif %}
+
+  <fieldset><legend>Loja e prazos</legend>
+   <p class="mut" style="margin-top:0">Semáforo de cada etapa: verde até 70% do prazo, amarelo até o prazo, vermelho depois.</p><div class="g">
+   {{ campo('NOME_LOJA', 'Nome da loja', valor=v.NOME_LOJA) }}
+   {{ campo('WHATSAPP_LOJA', 'WhatsApp da loja (com 55 e DDD)', valor=v.WHATSAPP_LOJA, extra='inputmode="tel"') }}
+   {{ campo('META_MES', 'Meta de serviços do mês (R$)', valor=v.META_MES, extra='inputmode="decimal"') }}
+   {{ campo('PRAZO_PADRAO_DIAS', 'Prazo padrão da OS (dias)', valor=v.PRAZO_PADRAO_DIAS, extra='inputmode="numeric"') }}
+   {{ campo('PRAZO_VISITA_DIAS', 'Prazo de visita técnica (dias)', valor=v.PRAZO_VISITA_DIAS, extra='inputmode="numeric"') }}
+   {{ campo('PRAZO_ORCAMENTO_DIAS', 'Prazo para orçamento (dias)', valor=v.PRAZO_ORCAMENTO_DIAS, extra='inputmode="numeric"') }}
+   {{ campo('TERC_AMARELO_DIAS', 'Terceirizada: amarelo a partir de (dias fora)', valor=v.TERC_AMARELO_DIAS, extra='inputmode="numeric"') }}
+   {{ campo('PRAZO_TERCEIRIZADA_DIAS', 'Terceirizada: vermelho a partir de (dias fora)', valor=v.PRAZO_TERCEIRIZADA_DIAS, extra='inputmode="numeric"') }}
+   {{ campo('PRAZO_RETIRADA_DIAS', 'Prazo para retirada (dias)', valor=v.PRAZO_RETIRADA_DIAS, extra='inputmode="numeric"') }}
+   {{ campo('ALERTA_LEGAL_DIAS', 'Alertar o prazo legal de 30 dias a partir do dia', valor=v.ALERTA_LEGAL_DIAS, extra='inputmode="numeric"') }}
+   {{ campo('ALERTA_CHAMADO_MIN', 'Alerta: chamado sem atendimento (min)', valor=v.ALERTA_CHAMADO_MIN, extra='inputmode="numeric"') }}
+   {{ campo('ALERTA_AGUARDANDO_HORAS', 'Alerta: aguardando cliente (horas)', valor=v.ALERTA_AGUARDANDO_HORAS, extra='inputmode="numeric"') }}</div></fieldset>
+
+  <fieldset><legend>Privacidade (LGPD)</legend>
+   <p class="mut" style="margin-top:0">Depois deste prazo, o painel apaga nome, telefone, CPF/CNPJ e descrições das OS e chamados encerrados; ficam só os números para os gráficos. O Uniplus não é alterado. 0 = nunca apagar.</p>
+   <div class="g">{{ campo('RETENCAO_MESES', 'Guardar dados pessoais de OS encerradas por (meses)', valor=v.RETENCAO_MESES, extra='inputmode="numeric"') }}</div>
+   <p class="mut" style="margin-bottom:0">Aviso de privacidade mostrado aos clientes: <a href="/privacidade" target="_blank">{{ c.URL_PUBLICA }}/privacidade</a></p></fieldset>
+
+  <fieldset><legend>Retorno em garantia</legend>
+   <p class="mut" style="margin-top:0">Escolha o campo extra da OS no Uniplus que você vai usar para marcar o retorno. Preencha nele o número da OS original (ou "S"). Com o número, o retorno conta para o técnico do serviço original.</p>
+   <div class="g"><label class="{{ 'erro' if campos.get('GARANTIA_CAMPO') }}">Campo da OS no Uniplus
+    <select name="GARANTIA_CAMPO"><option value="">Desligado</option>{% for i in range(1, 17) %}<option value="extra{{ i }}" {{ 'selected' if v.GARANTIA_CAMPO == 'extra' ~ i }}>Campo extra {{ i }}</option>{% endfor %}</select>
+    {% if campos.get('GARANTIA_CAMPO') %}<small>⚠ {{ campos['GARANTIA_CAMPO'] }}</small>{% endif %}</label></div></fieldset>
+
+  <fieldset><legend>Lembretes e resumo pelo WhatsApp</legend>
+   <p class="mut" style="margin-top:0">Só funcionam com a API oficial ligada abaixo. Cada lembrete é enviado uma única vez por OS.</p><div class="g">
+   {{ campo('LEMBRETE_ORCAMENTO_DIAS', 'Lembrar orçamento parado após (dias; 0 = desligado)', valor=v.LEMBRETE_ORCAMENTO_DIAS, extra='inputmode="numeric"') }}
+   {{ campo('LEMBRETE_RETIRADA_DIAS', 'Lembrar retirada aos (dias, separados por vírgula)', valor=v.LEMBRETE_RETIRADA_DIAS, dica='30,90,150') }}
+   {{ campo('RESUMO_HORA', 'Resumo diário às (HH:MM; em branco = desligado)', valor=v.RESUMO_HORA, dica='18:00') }}
+   {{ campo('RESUMO_TELEFONE', 'WhatsApp que recebe o resumo (com 55 e DDD)', valor=v.RESUMO_TELEFONE, extra='inputmode="tel"') }}</div></fieldset>
+
+  <fieldset><legend>WhatsApp (API oficial)</legend>
+   <p class="mut" style="margin-top:0">Avisos automáticos: <b class="{{ 'ok' if wa else '' }}">{{ 'ligados' if wa else 'desligados' }}</b></p><div class="g">
+   {{ campo('WA_PHONE_ID', 'ID do número (Phone Number ID)', valor=v.WA_PHONE_ID) }}
+   {{ campo('WA_TOKEN', 'Token de acesso ' ~ ('(digitado, ainda não salvo)' if wat_dig else ('(salvo: ' ~ wat ~ ')' if wat else '(não informado)')), tipo='password', dica=('deixe em branco para manter' if wat or wat_dig else 'cole o token aqui'), extra='autocomplete="new-password"') }}</div>
+   {% if wat %}<label class="ck" style="margin-top:8px"><input type="checkbox" name="limpar_WA_TOKEN" value="1">Apagar o token e desligar os avisos</label>{% endif %}</fieldset>
+
+  <fieldset><legend>Telão</legend>
+   <p style="margin:0 0 4px">Endereços do telão (TV box, tablet, smart TV), sem login:</p>
+   <code>{{ c.URL_PUBLICA }}/painel?tv=1&amp;chave={{ c.CHAVE_TV }}</code><br><code>{{ c.URL_PUBLICA }}/chamados?tv=1&amp;chave={{ c.CHAVE_TV }}</code>
+   <label class="ck" style="margin-top:8px"><input type="checkbox" name="nova_chave_tv" value="1">Gerar nova chave do telão (os endereços antigos param de funcionar)</label></fieldset>
+
+  <fieldset><legend>Salvar alterações</legend>
+   <p class="mut" style="margin-top:0">Se os dados do Uniplus mudaram, eles são testados de novo antes de gravar. Com erro, nada é salvo.</p>
+   <div class="g">
+   {{ campo('senha_atual', ('Senha master' if tem_dono else 'Senha do painel (a que você usa hoje para entrar)'), tipo='password', extra='autocomplete="current-password"') }}</div>
+   <p style="margin:14px 0 4px"><b>Senha master</b> <span class="mut">— libera os valores em R$ e esta aba. {{ 'Já definida; preencha só para trocar.' if tem_dono else 'Ainda não definida: enquanto estiver vazia, os valores ficam ocultos para todos.' }}</span></p>
+   <div class="g">
+   {{ campo('nova_dono', ('Nova senha master (mín. 8)' if tem_dono else 'Definir senha master (mín. 8)'), tipo='password', dica=('em branco = manter' if tem_dono else ''), extra='autocomplete="new-password"') }}
+   {{ campo('nova_dono2', 'Repetir a senha master', tipo='password', extra='autocomplete="new-password"') }}</div>
+   <p style="margin:14px 0 4px"><b>Senha da equipe</b> <span class="mut">— a do login do painel; não mostra valores nem abre a configuração depois que a senha master existir.</span></p>
+   <div class="g">
+   {{ campo('nova_senha', 'Nova senha da equipe — opcional (mín. 8)', tipo='password', dica='em branco = manter a atual', extra='autocomplete="new-password"') }}
+   {{ campo('nova_senha2', 'Repetir a nova senha da equipe', tipo='password', extra='autocomplete="new-password"') }}</div>
+   <p style="margin:12px 0 0"><button name="acao" value="salvar">Salvar configuração</button></p></fieldset>
+ </form>
+
+ <div class="card" style="max-width:900px;margin-top:12px"><h2>Integração com o Help me!</h2>
+  <p class="mut" style="margin-top:0">No painel do Help me! (Configurações › Integração com o gestor de OS) informe o endereço deste gestor (<code>{{ c.URL_PUBLICA }}</code>) e a chave abaixo. Com isso: o pedido de ajuda feito pelo cliente na janela do Help me! vira chamado aqui; a fila de chamados aparece no painel dos técnicos; e cada atendimento remoto encerrado atualiza o chamado com o relatório. Endereço do painel do Help me! para o botão “Acesso remoto”: <code>HELPME_URL</code> no .env.</p>
+  <p class="mut" style="margin-top:0">O Help me! consulta as OS em <code>{{ c.URL_PUBLICA }}/api/helpme/os?q=NOME_OU_NUMERO</code> enviando esta chave no cabeçalho <code>X-Api-Key</code>. A resposta traz o nome completo do cliente, laudo, observação e itens. Não divulgue a chave.</p>
+  <input readonly value="{{ chave_helpme }}" style="font-family:monospace" onclick="this.select()"></div>
+ <div class="card" id="modelos" style="max-width:900px;margin-top:12px"><h2>Modelos de OS para o Uniplus (com QR code e logo)</h2>
+  {% if aviso_ok %}<div class="okb" style="margin-bottom:10px">✓ {{ aviso_ok }}</div>{% endif %}
+  {% if aviso_erro %}<div class="alerta">{{ aviso_erro }}</div>{% endif %}
+  <p class="mut" style="margin-top:0">Os arquivos saem prontos com o endereço deste painel e com a logo embutida. No Uniplus, envie o .jrxml no modelo de impressão do tipo iReport. O QR impresso leva o cliente direto ao andamento da OS, sem digitar nada.</p>
+  <div style="display:flex;gap:18px;flex-wrap:wrap;align-items:center;margin-bottom:12px">
+   {% if tem_logo %}<img src="/config/logo" alt="Logo atual" style="max-height:70px;max-width:180px;border:1px solid var(--lin);border-radius:8px;padding:4px;background:#fff">{% else %}<span class="mut">Nenhuma logo enviada: os modelos saem só com a razão social.</span>{% endif %}
+   <form method="post" enctype="multipart/form-data" style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+    <input type="file" name="logo" accept="image/png,image/jpeg" required><button class="sec" name="acao" value="logo">{{ 'Trocar logo' if tem_logo else 'Enviar logo' }}</button></form>
+   {% if tem_logo %}<form method="post"><button class="sec" name="acao" value="remover_logo">Remover logo</button></form>{% endif %}</div>
+  <p style="margin:0"><a class="btn" href="/config/modelo/a4">Baixar A4</a> <a class="btn" href="/config/modelo/a4verso">Baixar A4 com verso</a> <a class="btn" href="/config/modelo/cupom">Baixar cupom 80 mm (2 vias)</a></p>
+  <p class="mut" style="margin-bottom:0">A logo é impressa em preto na impressora térmica; prefira uma versão de fundo branco e traço escuro.</p></div>
+</div>
+{% endblock %}

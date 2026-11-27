@@ -1,0 +1,42 @@
+{% extends "_base.html" %}
+{% block titulo %}OS {{ codigo }} — {{ loja }}{% endblock %}
+{% block css %}
+.et{display:flex;gap:4px;margin:16px 0}.et div{flex:1;text-align:center;font-size:11px;color:var(--mut)}
+.et i{display:block;height:6px;border-radius:9px;background:var(--lin);margin-bottom:6px}.et .f i{background:var(--ok)}.et .f{color:var(--tx);font-weight:600}
+.msg{font-size:18px;font-weight:600;margin:10px 0}dl{display:grid;grid-template-columns:auto 1fr;gap:6px 12px;margin:14px 0}dt{color:var(--mut)}dd{margin:0}
+ul{padding-left:18px;margin:6px 0}
+{% endblock %}
+{% block conteudo %}
+<div class="mini" style="max-width:520px"><div class="card">
+ <span class="mut">{{ loja }}</span><h1>{{ 'Consulta de ordem de serviço' if estado == 'numero' else 'Ordem de serviço nº ' ~ codigo }}</h1>
+ {% if estado == 'numero' %}
+  <p>Digite o <b>número da OS</b> impresso no seu comprovante.</p>
+  <form method="post"><input name="os" inputmode="numeric" pattern="[0-9]{1,12}" maxlength="12" placeholder="Número da OS" autofocus required><button>Continuar</button></form>
+ {% elif estado == 'inexistente' %}
+  <p>Não encontramos esta OS. Confira o número ou fale com a loja.</p><p><a href="/c">Consultar outro número</a></p>
+ {% elif estado == 'expirada' %}
+  <p>Os detalhes desta OS ficam disponíveis por {{ dias }} dias após o reparo e esse prazo terminou. Fale com a loja se precisar de alguma informação.</p>
+ {% elif estado == 'pedir' %}
+  {% if sem_tel %}<p>Esta OS não tem CPF/CNPJ nem telefone no cadastro para confirmação. Fale com a loja para saber o andamento.</p>
+  {% else %}<p>Para ver o andamento, informe os <b>4 últimos dígitos</b> do CPF/CNPJ ou do telefone do cadastro.</p>
+  <form method="post"><input name="fim" inputmode="numeric" pattern="[0-9]{4}" maxlength="4" placeholder="0000" autofocus required><button>Consultar</button></form>
+  {% if erro %}<p class="al">{{ erro }}</p>{% endif %}{% endif %}
+ {% else %}
+  <p class="msg {{ 'al' if o.situacao == 'canceladas' }}">{{ msg }}</p>
+  {% if pos >= 0 %}<div class="et">{% for e in etapas %}<div class="{{ 'f' if loop.index0 <= pos }}"><i></i>{{ e }}</div>{% endfor %}</div>{% endif %}
+  <dl><dt>Equipamento</dt><dd>{{ o.equipamento or '—' }}</dd>
+   {% if o.serie %}<dt>Nº de série</dt><dd>{{ o.serie }}</dd>{% endif %}
+   {% if o.laudo %}<dt>Laudo técnico</dt><dd>{{ o.laudo }}</dd>{% endif %}
+   {% if o.obs %}<dt>Observação</dt><dd>{{ o.obs }}</dd>{% endif %}
+   <dt>Entrada</dt><dd>{{ o.abertura|dt('%d/%m/%Y') }}</dd>
+   {% if o.situacao not in ('finalizadas','canceladas','retirada') and o.limite %}<dt>Previsão</dt><dd>{{ o.limite|dt('%d/%m/%Y') }}</dd>{% endif %}
+   {% if o.situacao == 'aprovacao' and o.valor %}<dt>Orçamento</dt><dd>{{ o.valor|brl }}</dd>{% endif %}</dl>
+  {% if itens %}<h2>Itens e serviços</h2><ul>{% for i in itens %}<li>{{ i.q }}{{ ' ' ~ i.u if i.u and i.u != 'UN' }} × {{ i.n }}</li>{% endfor %}</ul>{% endif %}
+  {% if o.situacao == 'finalizadas' %}<p class="mut" style="font-size:12px">Estes detalhes ficam disponíveis por {{ dias }} dias após o reparo.</p>{% endif %}
+  {% if hist|length > 1 %}<h2>Histórico</h2><ul>{% for h in hist %}<li>{{ h.quando|dt }} — {{ titulos.get(h.situacao, h.situacao) }}</li>{% endfor %}</ul>{% endif %}
+  {% if avaliar %}<p><a class="btn" href="{{ avaliar }}">Avaliar o atendimento</a></p>{% endif %}
+ {% endif %}
+ {% if zap %}<p style="margin-top:16px"><a href="https://wa.me/{{ zap }}?text=Ol%C3%A1%2C%20sobre%20a%20OS%20{{ codigo }}">Falar com a loja no WhatsApp</a></p>{% endif %}
+</div>
+ <p class="mut" style="text-align:center;font-size:12px;margin-top:10px"><a href="/privacidade">Aviso de privacidade</a></p></div>
+{% endblock %}

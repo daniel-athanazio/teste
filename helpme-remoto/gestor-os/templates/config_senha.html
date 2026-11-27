@@ -1,0 +1,7 @@
+{% extends "_base.html" %}{% block titulo %}Configuração — {{ loja }}{% endblock %}{% block conteudo %}
+<div class="mini"><div class="card"><h1>Configuração</h1>
+<p class="mut">{{ 'A tela ficou aberta por muito tempo e foi fechada. Nada foi salvo. ' if expirou }}Digite a {{ 'senha master' if tem_dono else 'senha do painel' }} para abrir.</p>
+<form method="post"><input type="hidden" name="acao" value="abrir"><input type="password" name="senha" placeholder="{{ 'Senha master' if tem_dono else 'Senha do painel' }}" autofocus required autocomplete="current-password">
+<button>Abrir configuração</button></form>{% if erro %}<p class="al">{{ erro }}</p>{% endif %}
+<p style="margin-bottom:0"><a href="/painel">Voltar ao painel</a></p></div></div>
+{% endblock %}

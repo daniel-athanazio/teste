@@ -1,0 +1,554 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Help me! – Acesso remoto</title>
+ <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@700&display=swap" rel="stylesheet">
+<style>
+.marca{display:flex;align-items:center;gap:8px}.marca span{font:700 22px Poppins,system-ui,sans-serif;letter-spacing:-.5px}.marca img{width:30px;height:30px}
+#logoLoja{max-height:36px;max-width:150px;background:#fff;border-radius:6px;padding:2px 6px}
+:root{--b:#1f6feb;--g:#1a7f37;--y:#bf8700;--r:#cf222e;--bd:#d0d7de;--mut:#57606a}
+*{box-sizing:border-box}body{margin:0;font:14px system-ui,sans-serif;color:#1f2328;background:#f6f8fa}
+header{background:#0d1117;color:#fff;padding:10px 16px;display:flex;gap:16px;align-items:center;flex-wrap:wrap}
+header b{font-size:16px}header nav{display:flex;gap:4px;flex:1;flex-wrap:wrap}header button{background:none;color:#c9d1d9;border:0;padding:6px 10px;border-radius:6px;cursor:pointer}
+header button.on{background:#30363d;color:#fff}main{padding:16px;max-width:1200px;margin:auto}
+.card{background:#fff;border:1px solid var(--bd);border-radius:8px;padding:14px;margin-bottom:14px}
+.cols{display:grid;grid-template-columns:300px 1fr;gap:14px}@media(max-width:800px){.cols{grid-template-columns:1fr}}
+h2{font-size:16px;margin:0 0 10px}table{width:100%;border-collapse:collapse}td,th{padding:6px;border-bottom:1px solid #eee;text-align:left;vertical-align:top}
+input,select,textarea{font:inherit;padding:6px 8px;border:1px solid var(--bd);border-radius:6px;width:100%}
+textarea{font-family:ui-monospace,monospace;min-height:110px}
+button.btn{background:var(--b);color:#fff;border:0;border-radius:6px;padding:6px 12px;cursor:pointer;white-space:nowrap;margin:2px 0}
+button.btn:disabled{opacity:.45;cursor:not-allowed}
+button.sec{background:#fff;color:#1f2328;border:1px solid var(--bd)}button.ok{background:var(--g)}button.warn{background:var(--y)}button.red{background:var(--r)}
+.row{display:flex;gap:8px;align-items:center;margin:6px 0}.mut{color:var(--mut);font-size:12px}
+.g{padding:8px;border-radius:6px;cursor:pointer;display:flex;justify-content:space-between}.g:hover{background:#f3f4f6}.g.on{background:#ddf4ff}
+.g.novos{color:var(--y);font-weight:600}
+.dot{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:6px;background:#bbb}.dot.on{background:var(--g)}
+.tag{font-size:12px;padding:1px 6px;border-radius:10px;background:#eee;white-space:nowrap}.t-ok,.t-ativo,.t-enviado,.t-autorizada,.t-notificado,.t-concluido{background:#dafbe1}
+.t-erro,.t-negado,.t-negada,.t-recusado{background:#ffebe9}.t-entregue,.t-aguardando,.t-autorizado,.t-aguardando_cliente,.t-pendente,.t-sem_resposta{background:#fff8c5}
+pre{background:#f6f8fa;padding:8px;white-space:pre-wrap;font-size:12px;max-height:260px;overflow:auto;margin:4px 0}
+#login{max-width:320px;margin:80px auto}.hide{display:none}.timer{font-size:22px;font-weight:600}
+.aviso{padding:10px;border-radius:6px;background:#fff8c5;margin:8px 0}.aviso.ok{background:#dafbe1}.aviso.red{background:#ffebe9}
+.num{font-family:ui-monospace,monospace;font-weight:600;letter-spacing:1px;white-space:nowrap}
+#alertBar{background:#cf222e;color:#fff;padding:8px 16px;display:flex;gap:12px;align-items:center;flex-wrap:wrap}#alertBar.hide{display:none}#alertBar button{background:#fff;color:#cf222e;border:0;border-radius:6px;padding:4px 10px;cursor:pointer}
+.acoes{display:flex;flex-wrap:wrap;gap:8px}.acao{border:1px solid var(--bd);border-radius:8px;padding:8px 12px;background:#fff;cursor:pointer;text-align:left;min-width:180px}.acao:hover{border-color:var(--b);background:#f0f6ff}.acao small{display:block;color:var(--mut)}
+.passo{display:flex;gap:8px;align-items:baseline;padding:3px 0}.st-ok{color:var(--g)}.st-falhou{color:var(--r);font-weight:600}.st-pendente{color:#999}
+.plano{border:1px solid #eee;border-radius:8px;padding:10px;margin:8px 0}.plano.falhou,.plano.concluido_com_falhas{border-color:#f5a3a3;background:#fff5f5}
+.tipo-tag{background:#fff1e6;color:#9a3412;border-radius:10px;padding:1px 8px;font-size:12px;font-weight:600}
+.pcard{border:1px solid var(--bd);border-radius:10px;padding:12px 14px;min-width:200px;flex:1;background:#fff;cursor:pointer;text-align:left;font:inherit}.pcard b{font-size:16px}.pcard .n{font-size:26px;font-weight:700}
+.paineis{display:grid;gap:14px}.paineis.dupla{grid-template-columns:1fr 1fr}@media(max-width:900px){.paineis.dupla{grid-template-columns:1fr}}
+.painel-tit{display:flex;justify-content:space-between;align-items:flex-start;gap:8px}.lado{font-size:12px;background:#ddf4ff;border-radius:10px;padding:1px 8px;margin-right:6px}
+dialog{border:1px solid var(--bd);border-radius:10px;padding:16px;min-width:340px;max-width:520px}dialog::backdrop{background:#0006}
+</style>
+</head>
+<body>
+<div id="login" class="card">
+  <div class="marca" style="justify-content:center;margin-bottom:12px"><span class="mNome" style="font-size:30px">Help me!</span><img class="mIcone" src="/api/marca/icone" alt="" style="width:40px;height:40px"></div>
+  <input id="lu" placeholder="Usuário" class="row"><input id="ls" type="password" placeholder="Senha" class="row" onkeydown="if(event.key==='Enter')entrar()">
+  <button class="btn" onclick="entrar()">Entrar</button> <span id="lerr" class="mut"></span>
+</div>
+<div id="app" class="hide">
+<header><div class="marca"><span class="mNome" style="color:#fff">Help me!</span><img class="mIcone" src="/api/marca/icone" alt=""></div><nav>
+  <button data-t="fila" class="on">Fila <span id="nFila" class="tag hide" style="background:#cf222e;color:#fff"></span></button><button data-t="equip">Equipamentos</button><button data-t="atend">Atendimento</button><button data-t="prob">Problemas</button>
+  <button data-t="scripts">Scripts</button><button data-t="rel">Relatórios</button>
+  <button data-t="bib">Biblioteca</button><button data-t="plug" class="adm">Plugins</button><button data-t="tec" class="adm">Técnicos</button><button data-t="cfg" class="adm">Configurações</button></nav>
+  <img id="logoLoja" class="hide" alt="Logo da loja"><button id="quem" onclick="perfil()" title="Meu perfil"></button><button onclick="sair()">Sair</button></header>
+<div id="alertBar" class="hide"></div>
+<main>
+<!-- EQUIPAMENTOS -->
+<!-- FILA -->
+<section id="t-fila"><div class="card"><div class="row" style="justify-content:space-between;flex-wrap:wrap"><h2 style="margin:0">Pedidos de ajuda dos clientes</h2>
+  <span class="mut">Chegam pela janela do Help me! no computador do cliente e viram chamado no gestor de OS.</span></div>
+  <table id="filaPed"></table></div>
+  <div class="card"><div class="row" style="justify-content:space-between;flex-wrap:wrap"><h2 style="margin:0">Chamados abertos no gestor de OS</h2><span id="filaGestorMsg" class="mut"></span></div>
+  <table id="filaGestor"></table></div></section>
+
+<section id="t-equip" class="hide"><div class="cols">
+  <div>
+    <div class="card"><h2>Vincular número de acesso</h2>
+      <p class="mut">O cliente instala o Help me! e envia o número que aparece na tela.</p>
+      <input id="vNum" placeholder="000 000 000" class="row num" inputmode="numeric">
+      <select id="vGrupo" class="row"></select><input id="vNome" placeholder="Nome do equipamento (ex.: Caixa 01)" class="row">
+      <button class="btn" onclick="vincular()">Vincular</button> <span id="vMsg" class="mut"></span></div>
+    <div class="card"><h2>Grupos (empresas)</h2>
+      <div class="row"><input id="ng" placeholder="Nome da empresa"><button class="btn" onclick="novoGrupo()">+</button></div>
+      <div id="grupos"></div></div>
+  </div>
+  <div class="card"><div class="row" style="justify-content:space-between"><h2 id="gtit">Selecione um grupo</h2><span id="gacoes"></span></div>
+    <p id="gcod" class="mut"></p><table id="equips"></table></div>
+</div></section>
+
+<!-- ATENDIMENTO -->
+<section id="t-atend" class="hide">
+  <div class="card" id="semSessao"><h2>Nenhum atendimento aberto</h2><p class="mut">Inicie pela aba Equipamentos.</p><div id="abertas"></div></div>
+  <div class="card hide" id="barraDupla"><div class="row" style="justify-content:space-between;flex-wrap:wrap">
+    <b>Tela dividida – dois pontos ao mesmo tempo</b>
+    <span><button class="btn" onclick="acaoNosDois()">Ação nos dois</button> <button class="btn" onclick="testeEntrePontos()">Teste de comunicação entre os dois</button></span></div>
+    <p class="mut">Telas remotas lado a lado: abra o acesso remoto dos dois e encaixe as janelas com Win+← e Win+→ (se abrirem em abas, arraste a aba para fora).</p></div>
+  <div id="paineis" class="paineis"></div>
+  <div class="row"><button class="btn sec hide" id="btnDividir" onclick="escolherSegundo()">+ Abrir outro atendimento lado a lado</button></div>
+</section>
+
+<!-- SCRIPTS -->
+<section id="t-scripts" class="hide"><div class="cols">
+  <div class="card"><h2>Biblioteca</h2><button class="btn sec adm" onclick="editScript(null)">+ Novo script</button><div id="slist"></div>
+    <p class="mut">🔒 = sempre pede autorização, mesmo no acesso contínuo com notificação.</p></div>
+  <div class="card" id="sform"><h2 id="sfTit">Novo script</h2>
+    <p class="mut">PowerShell. Use {{nome}} para parâmetros preenchidos na hora (ex.: {{alvo}}, {{porta}}).</p>
+    <input id="fNome" placeholder="Nome" class="row"><input id="fDesc" placeholder="Descrição que o cliente vê" class="row">
+    <textarea id="fCont" placeholder="Comandos"></textarea>
+    <div class="row"><label><input type="checkbox" id="fAut" style="width:auto" checked> Sempre pedir autorização 🔒</label>
+      <label><input type="checkbox" id="fAtivo" style="width:auto" checked> Ativo</label>
+      Tempo limite (s) <input id="fTo" type="number" value="120" style="width:90px"></div>
+    <button class="btn" onclick="salvarScript()">Salvar</button> <span id="sfMsg" class="mut"></span></div>
+</div></section>
+
+<!-- RELATÓRIOS -->
+<section id="t-rel" class="hide"><div class="card"><div class="row" style="justify-content:space-between"><h2>Atendimentos</h2>
+  <select id="relTipo" style="max-width:220px" onchange="carregaRel()"><option value="">Todos os tipos</option></select></div><table id="relTab"></table></div></section>
+
+<!-- TIPOS DE PROBLEMA -->
+<section id="t-prob" class="hide">
+  <div class="card"><div class="row" style="justify-content:space-between"><h2>Atendimentos por tipo de problema</h2>
+    <select id="probDias" style="max-width:180px" onchange="carregaProb()"><option value="7">Últimos 7 dias</option><option value="30" selected>Últimos 30 dias</option><option value="90">Últimos 90 dias</option><option value="365">Últimos 12 meses</option></select></div>
+    <div id="probCards" class="acoes"></div></div>
+  <div class="card adm"><div class="row" style="justify-content:space-between"><h2>Tipos de problema</h2><button class="btn sec" onclick="editTipo(null)">+ Novo tipo</button></div>
+    <p class="mut">O técnico escolhe o tipo ao iniciar o atendimento. As categorias marcadas aparecem primeiro nas ações daquele tipo.</p>
+    <table id="tipoTab"></table></div>
+</section>
+
+<!-- BIBLIOTECA -->
+<section id="t-bib" class="hide"><div class="cols">
+  <div class="card adm"><h2>Enviar para a biblioteca</h2>
+    <p class="mut">Fica guardado no servidor (VPS). Os plugins usam direto, sem procurar na internet; o agente confere o hash antes de instalar.</p>
+    <input type="file" id="arqFile" class="row">
+    <select id="arqCat" class="row"><option>Drivers de impressora</option><option>Drivers diversos</option><option>Aplicações</option><option>Uniplus</option><option>Automação comercial</option><option>Certificados</option><option>Utilitários</option><option>Outros</option></select>
+    <input id="arqDesc" class="row" placeholder="Descrição (modelo, versão, observações)">
+    <button class="btn" onclick="enviarArq()">Enviar</button> <span id="arqMsg" class="mut"></span></div>
+  <div class="card"><div class="row" style="justify-content:space-between"><h2>Biblioteca</h2><input id="bibBusca" placeholder="Buscar…" style="max-width:260px" oninput="desenhaBib()"></div>
+    <div id="arqList"></div></div>
+</div></section>
+
+<!-- PLUGINS -->
+<section id="t-plug" class="hide"><div class="cols">
+  <div><div class="card"><h2>Plugins de ação</h2><button class="btn sec" onclick="editPlugin(null)">+ Novo plugin</button>
+    <button class="btn sec" onclick="$('impFile').click()">Importar .json</button><input type="file" id="impFile" accept=".json" class="hide" onchange="importar(this)">
+    <div id="plist"></div></div>
+    <p class="mut">Drivers, instaladores e certificados usados pelos plugins ficam na aba Biblioteca.</p></div>
+  <div class="card"><h2 id="pfTit">Plugin</h2>
+    <p class="mut">Definição em JSON: parâmetros (tipos texto, numero, com, segredo), arquivos e passos com verificação (codigo_zero, contem, nao_contem, regex) e em_falha (parar ou continuar). No script, $env:HM_ARQUIVOS é a pasta com os arquivos baixados.</p>
+    <textarea id="pfJson" style="min-height:420px"></textarea>
+    <div class="row"><button class="btn" onclick="salvarPlugin()">Salvar</button><button class="btn sec" onclick="exportar()">Exportar .json</button><span id="pfMsg" class="mut"></span></div></div>
+</div></section>
+
+<!-- TÉCNICOS -->
+<section id="t-tec" class="hide"><div class="cols">
+  <div class="card"><h2 id="tfTit">Novo técnico</h2>
+    <p class="mut">Cada técnico entra com o próprio usuário. Nome e função saem no relatório e na tela do cliente.</p>
+    <input id="tNome" placeholder="Nome completo" class="row"><input id="tFuncao" placeholder="Função (ex.: Técnico de suporte)" class="row">
+    <input id="tTel" placeholder="Telefone (opcional)" class="row"><input id="tUser" placeholder="Usuário de login" class="row">
+    <input id="tSenha" type="password" placeholder="Senha (mín. 8)" class="row">
+    <label class="row"><input type="checkbox" id="tAdm" style="width:auto"> Administrador</label>
+    <button class="btn" onclick="salvarTec()">Salvar</button> <button class="btn sec" onclick="editTec(null)">Limpar</button> <span id="tMsg" class="mut"></span></div>
+  <div class="card"><h2>Equipe</h2><table id="tecTab"></table></div>
+</div></section>
+
+<!-- CONFIGURAÇÕES -->
+<section id="t-cfg" class="hide"><div class="card" style="max-width:640px"><h2>Marca</h2>
+  <p class="mut">Nome e ícone aparecem no painel, nas janelas do cliente e no relatório. A logo da loja aparece no topo do painel e no relatório.</p>
+  <label class="mut" for="mkNome">Nome do aplicativo</label><input id="mkNome" class="row" maxlength="40">
+  <div class="row"><label class="mut" style="width:110px">Cor do nome</label><input id="mkCorNome" type="color" style="width:70px;padding:2px">
+    <label class="mut" style="width:110px;margin-left:16px">Cor do ícone</label><input id="mkCorIcone" type="color" style="width:70px;padding:2px"></div>
+  <div class="row"><img class="mIcone" src="/api/marca/icone" alt="Ícone atual" style="width:48px;height:48px">
+    <button class="btn sec" onclick="$('mkIcFile').click()">Trocar ícone (PNG/SVG)</button><button class="btn sec" onclick="apagarMarca('icone')">Ícone padrão</button>
+    <input type="file" id="mkIcFile" accept=".png,.svg" class="hide" onchange="enviarMarca('icone',this)"></div>
+  <div class="row"><img id="mkLogoPrev" class="hide" alt="Logo da loja" style="max-height:48px;max-width:180px;border:1px dashed #ccc;border-radius:6px;padding:2px">
+    <button class="btn sec" onclick="$('mkLgFile').click()">Enviar logo da loja</button><button class="btn sec" onclick="apagarMarca('logo')">Remover logo</button>
+    <input type="file" id="mkLgFile" accept=".png,.svg" class="hide" onchange="enviarMarca('logo',this)"></div>
+  <button class="btn" onclick="salvarMarca()">Salvar marca</button> <span id="mkMsg" class="mut"></span></div>
+<div class="card" style="max-width:640px"><h2>Integração com o gestor de OS (opcional)</h2>
+  <p class="mut">Ligada, os pedidos de ajuda dos clientes viram chamados no gestor (triagem), a aba Fila mostra os chamados abertos e cada atendimento encerrado atualiza o chamado com o resumo e o relatório.</p>
+  <label class="row"><input type="checkbox" id="gAtivo" style="width:auto"> Integrar com o gestor de OS</label>
+  <input id="gUrl" placeholder="Endereço do gestor: https://os.fninfohouse.com.br" class="row">
+  <input id="gTok" type="password" placeholder="Chave da integração (gestor › Configuração › Integração com o Help me!)" class="row">
+  <button class="btn" onclick="salvarGestor()">Salvar</button> <button class="btn sec" onclick="testarGestor()">Testar envio</button> <span id="gMsg" class="mut"></span>
+</div>
+<div class="card" style="max-width:640px"><h2>Site de downloads</h2>
+  <p class="mut">Página pública para o cliente baixar o programa. O arquivo já sai configurado com este servidor. Cada empresa (grupo) tem também um link próprio, que coloca o computador direto no grupo.</p>
+  <div class="row"><input id="linkSite" readonly onclick="this.select()"><button class="btn sec" onclick="copiar($('linkSite').value)">Copiar</button><a class="btn sec" id="abrirSite" target="_blank" style="text-decoration:none">Abrir</a></div></div>
+<div class="card" style="max-width:640px"><h2>Análise de falhas por IA (opcional)</h2>
+  <p class="mut">Quando um plugin falha, o técnico pode pedir à IA (Claude) a causa provável e a correção sugerida. A IA só sugere: nada é executado sem o técnico. A saída do comando é enviada à API da Anthropic (segredos ficam mascarados).</p>
+  <label class="row"><input type="checkbox" id="iaAtivo" style="width:auto"> Ativar análise por IA</label>
+  <input id="iaChave" type="password" placeholder="Chave da API Anthropic (deixe vazio para manter)" class="row"><input id="iaModelo" class="row" placeholder="claude-sonnet-5-5">
+  <button class="btn" onclick="salvarIA()">Salvar</button> <span id="iaMsg" class="mut"></span>
+</div></section>
+</main></div>
+
+<dialog id="dlg"><h2 id="dTit"></h2><div id="dCorpo"></div><div class="row" style="justify-content:flex-end" id="dBot"></div></dialog>
+
+<script>
+let TOKEN=sessionStorage.hmTok||"", EU=JSON.parse(sessionStorage.hmEu||"null"), grupoSel=null, grupos=[], scripts=[], editId=null, tecEdit=null, poll=null;
+const $=id=>document.getElementById(id), esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const fmt=s=>s?new Date(s).toLocaleString("pt-BR"):"-";
+const CONT={inativo:"desligado",aguardando_cliente:"aguardando o cliente",ativo:"ativo",recusado:"recusado pelo cliente"};
+const MODO={notificar:"notificar",autorizar:"autorizar"};
+async function api(m,u,b){const r=await fetch(u,{method:m,headers:{"Content-Type":"application/json",Authorization:"Bearer "+TOKEN},body:b?JSON.stringify(b):undefined});
+  if(r.status===401&&u!=="/api/login"){sair();throw new Error("Sessão expirada")}
+  const d=await r.json().catch(()=>({}));if(!r.ok)throw new Error(typeof d.detail==="string"?d.detail:"Erro "+r.status);return d}
+function dialogo(tit,html,botoes){$("dTit").textContent=tit;$("dCorpo").innerHTML=html;$("dBot").innerHTML="";
+  return new Promise(res=>{botoes.forEach(([txt,cls,val])=>{const b=document.createElement("button");b.className="btn "+cls;b.textContent=txt;
+    b.onclick=()=>{const dados={};$("dCorpo").querySelectorAll("[name]").forEach(i=>dados[i.name]=i.type==="checkbox"?i.checked:i.value);$("dlg").close();res(val===null?null:{v:val,...dados})};$("dBot").appendChild(b)});$("dlg").showModal()})}
+async function entrar(){try{const d=await api("POST","/api/login",{usuario:$("lu").value.trim(),senha:$("ls").value});
+  TOKEN=d.token;EU=d;sessionStorage.hmTok=TOKEN;sessionStorage.hmEu=JSON.stringify(d);iniciar()}catch(e){$("lerr").textContent=e.message}}
+function sair(){sessionStorage.clear();location.reload()}
+function iniciar(){$("login").classList.add("hide");$("app").classList.remove("hide");
+  $("quem").textContent=EU.nome+(EU.funcao?" – "+EU.funcao:"");document.querySelectorAll(".adm").forEach(x=>x.classList.toggle("hide",!EU.admin));
+  carregaGrupos();carregaScripts();carregaPluginsLista();carregaTipos();verAlertas();setInterval(verAlertas,10000);
+  carregaFila();setInterval(carregaFila,10000);if(window.Notification&&Notification.permission==="default")Notification.requestPermission();
+  $("linkSite").value=location.origin+"/baixar";$("abrirSite").href="/baixar";if(location.hash==="#fila")aba("fila")}
+document.querySelectorAll("header nav button").forEach(b=>b.onclick=()=>aba(b.dataset.t));
+function aba(t){document.querySelectorAll("header nav button").forEach(b=>b.classList.toggle("on",b.dataset.t===t));
+  document.querySelectorAll("main>section").forEach(s=>s.classList.toggle("hide",s.id!=="t-"+t));
+  if(t==="fila")carregaFila();if(t==="rel")carregaRel();if(t==="atend")carregaAtend();if(t==="scripts")carregaScripts();if(t==="tec")carregaTec();if(t==="cfg")carregaCfg();if(t==="prob")carregaProb();if(t==="plug")carregaPlugins();if(t==="bib")carregaBib()}
+async function perfil(){const r=await dialogo("Meu perfil",`<p><b>${esc(EU.nome)}</b> ${esc(EU.funcao||"")}<br><span class="mut">usuário ${esc(EU.usuario)}</span></p>
+  <p class="mut">Seu nome e função aparecem no relatório e na tela do cliente. Para alterá-los, fale com o administrador.</p>
+  <input name="atual" type="password" placeholder="Senha atual" class="row"><input name="nova" type="password" placeholder="Nova senha (mín. 8)" class="row">`,
+  [["Fechar","sec",null],["Trocar senha","",1]]);if(!r)return;
+  try{await api("POST","/api/eu/senha",{senha_atual:r.atual,senha_nova:r.nova});alert("Senha alterada.")}catch(e){alert(e.message)}}
+
+/* ---------- grupos e equipamentos ---------- */
+async function carregaGrupos(){const d=await api("GET","/api/grupos");grupos=d.grupos;
+  $("vGrupo").innerHTML='<option value="">Grupo (empresa)…</option>'+grupos.map(g=>`<option value="${g.id}">${esc(g.nome)}</option>`).join("");
+  $("grupos").innerHTML=(d.aguardando_vinculo?`<div class="g novos ${grupoSel==="novos"?"on":""}" onclick="selNovos()"><span>Aguardando vínculo</span><span>${d.aguardando_vinculo}</span></div>`:"")+
+   grupos.map(g=>`<div class="g ${g.id===grupoSel?.id?"on":""}" onclick="selGrupo(${g.id})"><span>${esc(g.nome)}</span><span class="mut">${g.qtd}</span></div>`).join("")||'<p class="mut">Nenhum grupo.</p>'}
+async function novoGrupo(){const n=$("ng").value.trim();if(!n)return;await api("POST","/api/grupos",{nome:n});$("ng").value="";carregaGrupos()}
+async function vincular(){try{await api("POST","/api/equipamentos/vincular",{numero_acesso:$("vNum").value,grupo_id:+$("vGrupo").value,nome:$("vNome").value.trim()});
+  $("vMsg").textContent="Vinculado.";const gid=+$("vGrupo").value;$("vNum").value=$("vNome").value="";await carregaGrupos();selGrupo(gid)}catch(e){$("vMsg").textContent=e.message}}
+async function selNovos(){grupoSel="novos";carregaGrupos();$("gtit").textContent="Aguardando vínculo";$("gacoes").innerHTML="";
+  $("gcod").textContent="Equipamentos que instalaram o Help me! e ainda não foram colocados em um grupo. Confirme o número com o cliente antes de vincular.";
+  const es=await api("GET","/api/equipamentos?sem_grupo=true");
+  $("equips").innerHTML="<tr><th>Nº de acesso</th><th>Computador</th><th>Instalado em</th><th></th></tr>"+es.map(e=>`<tr>
+   <td class="num">${esc(e.numero_fmt)}</td><td><span class="dot ${e.online?"on":""}"></span>${esc(e.hostname)}<div class="mut">${esc(e.usuario_windows)} · ${esc(e.info?.windows||"")}</div></td>
+   <td class="mut">${fmt(e.criado_em)}</td><td><button class="btn" onclick="preVincular('${esc(e.numero_fmt)}','${esc(e.hostname)}')">Vincular</button></td></tr>`).join("")}
+function preVincular(n,h){$("vNum").value=n;$("vNome").value=h;$("vGrupo").focus()}
+async function selGrupo(id){grupoSel=grupos.find(g=>g.id===id);if(!grupoSel)return;carregaGrupos();const g=grupoSel;$("gtit").textContent=g.nome;
+  const lk=location.origin+"/baixar/"+g.codigo_ativacao;
+  $("gcod").innerHTML=`Link de instalação desta empresa: <a href="${esc(lk)}" target="_blank">${esc(lk)}</a> <button class="btn sec" onclick="copiar('${esc(lk)}')">Copiar</button>
+    <a class="btn sec" style="text-decoration:none" target="_blank" href="https://wa.me/?text=${encodeURIComponent("Para receber o suporte remoto da loja, baixe e abra o programa: "+lk)}">Enviar no WhatsApp</a>
+    <br>Código de ativação: <b>${esc(g.codigo_ativacao)}</b> ${g.cnpj?"· CNPJ "+esc(g.cnpj):""}`;
+  $("gacoes").innerHTML=`<button class="btn sec" onclick="renGrupo()">Editar</button> <button class="btn sec" onclick="novoCod()">Novo código</button>`;
+  const es=await api("GET","/api/equipamentos?grupo_id="+g.id);
+  $("equips").innerHTML="<tr><th>Equipamento</th><th>Nº de acesso</th><th>Acesso contínuo</th><th></th></tr>"+es.map(e=>`<tr>
+   <td><span class="dot ${e.online?"on":""}"></span><b>${esc(e.nome)}</b><div class="mut">${esc(e.hostname)} · ${esc(e.usuario_windows)} · ${esc(e.info?.windows||"")}</div>
+     <div class="mut">${e.portatil?'<span class="tag t-pendente">sem instalar</span> ':""}último contato ${fmt(e.ultimo_contato)}</div></td>
+   <td class="num">${esc(e.numero_fmt)}</td>
+   <td><span class="tag t-${e.continuo}">${CONT[e.continuo]||e.continuo}</span>${e.continuo==="ativo"?`<div class="mut">modo ${MODO[e.modo_acesso]} · aceito por ${esc(e.continuo_consentido_por)} em ${fmt(e.continuo_consentido_em)}</div>`:""}</td>
+   <td><button class="btn" onclick="iniciarSessao(${e.id})">Atender</button>
+   <button class="btn sec" onclick="continuo(${e.id})">Acesso contínuo</button>
+   <button class="btn sec" onclick="renEquip(${e.id})">Renomear</button> <button class="btn sec" onclick="moverEquip(${e.id})">Mover</button></td></tr>`).join("")}
+async function renGrupo(){const r=await dialogo("Editar grupo",`<input name="nome" class="row" value="${esc(grupoSel.nome)}"><input name="cnpj" class="row" placeholder="CNPJ" value="${esc(grupoSel.cnpj||"")}">`,[["Cancelar","sec",null],["Salvar","",1]]);
+  if(!r)return;await api("PATCH","/api/grupos/"+grupoSel.id,{nome:r.nome,cnpj:r.cnpj||null});await carregaGrupos();selGrupo(grupoSel.id)}
+async function novoCod(){if(!confirm("Gerar novo código? O antigo deixa de valer para novas instalações."))return;await api("POST",`/api/grupos/${grupoSel.id}/novo-codigo`);await carregaGrupos();selGrupo(grupoSel.id)}
+async function renEquip(id){const e=await api("GET","/api/equipamentos/"+id);const r=await dialogo("Renomear equipamento",`<input name="nome" class="row" value="${esc(e.nome)}">`,[["Cancelar","sec",null],["Salvar","",1]]);
+  if(!r)return;await api("PATCH","/api/equipamentos/"+id,{nome:r.nome});selGrupo(grupoSel.id)}
+async function moverEquip(id){const r=await dialogo("Mover para o grupo",`<select name="g" class="row">${grupos.map(g=>`<option value="${g.id}">${esc(g.nome)}</option>`).join("")}</select>`,[["Cancelar","sec",null],["Mover","",1]]);
+  if(!r)return;await api("PATCH","/api/equipamentos/"+id,{grupo_id:+r.g});await carregaGrupos();selGrupo(grupoSel.id)}
+async function continuo(id){const e=await api("GET","/api/equipamentos/"+id);
+  if(e.continuo==="ativo"){const r=await dialogo("Acesso contínuo – "+e.nome,`<p>Ativo no modo <b>${MODO[e.modo_acesso]}</b>, aceito por ${esc(e.continuo_consentido_por)} em ${fmt(e.continuo_consentido_em)}.</p>
+     ${e.modo_acesso==="notificar"?'<p class="mut">No modo notificar você abre a tela sem esperar o cliente; ele é avisado na hora e pode encerrar.</p>':'<p class="mut">No modo autorizar o cliente aceita cada atendimento na tela.</p>'}`,
+     [["Fechar","sec",null],["Desativar acesso contínuo","red",1]]);
+    if(r&&confirm("Desativar? O cliente será avisado.")){await api("POST",`/api/equipamentos/${id}/continuo/desativar`);selGrupo(grupoSel.id)}return}
+  const r=await dialogo("Pedir acesso contínuo – "+e.nome,`<p>O cliente verá um pedido na tela e precisa aceitar. Escolha o modo combinado com ele:</p>
+    <select name="modo" class="row"><option value="notificar">Só notificar – o técnico entra e executa sem esperar; o cliente é avisado de tudo</option><option value="autorizar">Autorizar cada atendimento – o cliente aprova o início; durante o atendimento só é avisado</option></select>
+    <p class="mut">No modo notificar, scripts com 🔒 continuam pedindo autorização. Só funciona com o programa instalado no computador do cliente.</p>`,
+    [["Cancelar","sec",null],["Enviar pedido ao cliente","",1]]);
+  if(!r)return;const modo=r.modo;
+  try{await api("POST",`/api/equipamentos/${id}/continuo`,{modo});alert("Pedido enviado. Aparece na tela do cliente assim que o computador estiver online.");selGrupo(grupoSel.id)}catch(err){alert(err.message)}}
+
+/* ---------- atendimento (um ou dois painéis lado a lado) ---------- */
+let paineis=[];  // até 2 sessões abertas ao mesmo tempo
+const LADO=["A","B"];
+async function iniciarSessao(eid,ped){const e=await api("GET","/api/equipamentos/"+eid);await carregaTipos();ped=ped||{};
+  const r=await dialogo("Atender "+e.nome,`<p class="mut">Técnico: <b>${esc(EU.nome)}${EU.funcao?" – "+esc(EU.funcao):""}</b> (sai no relatório e na tela do cliente)</p>
+    <label class="mut">Tipo de problema</label><select name="tipo" class="row"><option value="">Escolha…</option>${tipos.filter(x=>x.ativo).map(x=>`<option>${esc(x.nome)}</option>`).join("")}</select>
+    <input name="os" class="row" placeholder="Nº da OS (opcional)" value="${esc(ped.chamado_id?"CH"+ped.chamado_id:"")}"><input name="motivo" class="row" placeholder="Motivo do atendimento" value="${esc((ped.problema||"").slice(0,280))}">
+    <p class="mut">${e.continuo==="ativo"&&e.modo_acesso==="notificar"?"Acesso contínuo: o cliente será apenas notificado.":"O cliente precisa autorizar o atendimento na tela dele."}</p>`,[["Cancelar","sec",null],["Iniciar","",1]]);
+  if(!r)return;if(!r.tipo)return alert("Escolha o tipo de problema.");
+  try{const d=await api("POST","/api/sessoes",{equipamento_id:eid,tipo_problema:r.tipo,os_numero:r.os||null,motivo:r.motivo||null,pedido_id:ped.id||null,chamado_id:ped.chamado_id||null});abrirSessao(d.id);carregaFila()}
+  catch(err){const m=/SESSAO_ABERTA:(\d+)/.exec(err.message);if(!m)return alert(err.message);
+    if(confirm(`Já existe o atendimento #${m[1]} aberto neste equipamento.\nEntrar nele junto com o outro técnico (acesso simultâneo)?`)){await api("POST",`/api/sessoes/${m[1]}/participar`);abrirSessao(+m[1])}}}
+async function carregaAtend(){if(paineis.length)return desenhaLayout();const ab=await api("GET","/api/sessoes?status=em_andamento");
+  $("abertas").innerHTML=ab.map(s=>`<div class="row"><button class="btn sec" onclick="abrirSessao(${s.id})">Retomar #${s.id} – ${esc(s.grupo_nome)} / ${esc(s.equip_nome)} (${esc(s.tecnico_ident)})</button></div>`).join("")}
+async function abrirSessao(id,lado){aba("atend");const s=await api("GET","/api/sessoes/"+id);
+  if(s.tecnico_nome!==EU.nome&&!(s.participantes||[]).some(p=>p.tecnico_ident.startsWith(EU.nome))&&s.status==="em_andamento"){await api("POST",`/api/sessoes/${id}/participar`).catch(()=>{})}
+  const ja=paineis.findIndex(p=>p.id===id);
+  if(ja>=0){paineis[ja]=s}
+  else if(lado!==undefined){paineis[lado]=s}
+  else if(paineis.length===1){const r=await dialogo("Abrir atendimento #"+id,`<p>Já existe um atendimento na tela (#${paineis[0].id} – ${esc(paineis[0].equip_nome)}).</p>`,[["Substituir","sec","sub"],["Tela dividida","","div"]]);
+    if(r&&r.v==="div")paineis[1]=s;else paineis[0]=s}
+  else if(paineis.length===2){paineis[1]=s}else paineis[0]=s;
+  paineis=paineis.filter(Boolean);desenhaLayout();clearInterval(poll);poll=setInterval(atualizaSessao,2000)}
+function desenhaLayout(){const n=paineis.length;$("semSessao").classList.toggle("hide",n>0);$("barraDupla").classList.toggle("hide",n<2);$("btnDividir").classList.toggle("hide",n!==1);
+  $("paineis").classList.toggle("dupla",n===2);$("paineis").innerHTML=paineis.map((s,k)=>painelHTML(k)).join("");paineis.forEach((s,k)=>{desenhaScripts(k);desenhaAcoes(k);desenhaExec(k)})}
+function painelHTML(k){const s=paineis[k],dupla=paineis.length===2;
+  return `<div>
+  <div class="card"><div class="painel-tit"><div><h2>${dupla?`<span class="lado">${LADO[k]}</span>`:""}#${s.id} · ${esc(s.grupo_nome||"")} / ${esc(s.equip_nome)}</h2>
+     <div class="mut">${esc(s.tecnico_ident)} · início ${fmt(s.inicio)} · nº ${esc(s.numero_fmt)}${s.os_numero?" · OS "+esc(s.os_numero):""}${s.motivo?" · "+esc(s.motivo):""}</div>
+     <div style="margin:4px 0"><span class="tipo-tag">${esc(s.tipo_problema||"Sem tipo")}</span> <a href="#" onclick="trocarTipo(${k});return false" class="mut">trocar</a></div><div class="mut" id="sPart${k}"></div><div class="mut" id="sEquip${k}"></div></div>
+     <div style="text-align:right"><div class="timer" id="sTimer${k}">00:00:00</div>${dupla?`<button class="btn sec" onclick="fecharPainel(${k})">Fechar painel</button>`:""}</div></div>
+    <div id="sLib${k}"></div><div class="row"><button class="btn" id="btnTela${k}" onclick="abrirRemoto(${k})">🖥 Abrir tela remota</button>
+     <span class="mut">Abre numa janela própria: mouse, teclado, Ctrl+Alt+Del, vários monitores, área de transferência e chat.</span></div></div>
+  <div class="card"><h2>Conversa com o cliente</h2><div id="chat${k}" style="max-height:200px;overflow:auto"></div>
+    <div class="row"><input id="chatIn${k}" placeholder="Mensagem (aparece na janela do Help me! do cliente)" maxlength="2000" onkeydown="if(event.key==='Enter')enviarChatP(${k})"><button class="btn" onclick="enviarChatP(${k})">Enviar</button></div></div>
+  ${dupla?"":`<div class="card"><h2>Ações</h2><div id="acoes${k}"></div></div>`}
+  <div class="card"><h2>Execuções de plugins</h2><div id="planos${k}"><p class="mut">Nenhuma ainda.</p></div></div>
+  ${dupla?`<details class="card"><summary><b>Ações só neste ponto</b></summary><div id="acoes${k}"></div></details>`:""}
+  <details class="card" ${dupla?"":"open"}><summary><b>Script avulso</b></summary>
+    <div class="row"><select id="selScript${k}" onchange="desenhaParams(${k})"></select></div>
+    <div id="sDesc${k}" class="mut"></div><pre id="sPrev${k}"></pre><div id="params${k}"></div>
+    <button class="btn" id="btnExec${k}" onclick="executar(${k})">Enviar ao equipamento</button> <span id="exMsg${k}" class="mut"></span>
+    <table id="exTab${k}" style="margin-top:8px"></table></details>
+  <div class="card"><h2>Encerrar atendimento</h2>
+    <textarea id="nota${k}" placeholder="Observação (o que foi feito, o que ficou pendente)" style="min-height:60px"></textarea>
+    <div class="row"><button class="btn ok" onclick="encerrar(${k},'concluido')">Concluído</button>
+    <button class="btn warn" onclick="encerrar(${k},'pendente')">Pendente</button></div></div></div>`}
+function abrirRemoto(k){const s=paineis[k];if(!["autorizada","notificado"].includes(s.liberacao))return alert("Aguarde o cliente autorizar o atendimento.");
+  window.open("/remoto?sessao="+s.id,"tela"+s.id,"popup,width="+Math.min(screen.availWidth,1500)+",height="+Math.min(screen.availHeight,950))}
+async function desenhaChatP(k){const s=paineis[k];const el=$("chat"+k);if(!el)return;let m;try{m=await api("GET",`/api/sessoes/${s.id}/chat`)}catch(e){return}
+  const html=m.length?m.map(x=>`<div style="margin:3px 0"><span class="mut">${fmt(x.criado_em).slice(-8)}</span> <b>${esc(x.de)}</b>${x.tecnico?"":" (cliente)"}: ${esc(x.texto)}</div>`).join(""):'<p class="mut">Nenhuma mensagem. O cliente responde pela janela do Help me!</p>';
+  if(el.dataset.h!==html){el.innerHTML=html;el.dataset.h=html;el.scrollTop=1e6}}
+async function enviarChatP(k){const i=$("chatIn"+k),t=i.value.trim();if(!t)return;i.value="";try{await api("POST",`/api/sessoes/${paineis[k].id}/chat`,{texto:t});desenhaChatP(k)}catch(e){alert(e.message)}}
+function copiar(t){navigator.clipboard.writeText(t).then(()=>alert("Copiado."))}
+/* ---------- fila de atendimento ---------- */
+let filaVista=new Set(JSON.parse(localStorage.hmFilaVista||"[]")),filaIni=false;
+async function carregaFila(){let d;try{d=await api("GET","/api/fila")}catch(e){return}
+  const abertos=d.pedidos.filter(p=>p.status==="aberto");$("nFila").textContent=abertos.length;$("nFila").classList.toggle("hide",!abertos.length);
+  const novos=abertos.filter(p=>!filaVista.has(p.id));
+  if(novos.length&&filaIni){try{const a=new AudioContext(),o=a.createOscillator();o.frequency.value=880;o.connect(a.destination);o.start();o.stop(a.currentTime+.25)}catch(e){}
+    if(window.Notification&&Notification.permission==="granted")new Notification("Novo pedido de ajuda",{body:novos[0].grupo_nome+" – "+novos[0].problema})}
+  filaIni=true;novos.forEach(p=>filaVista.add(p.id));localStorage.hmFilaVista=JSON.stringify([...filaVista].slice(-300));
+  const ST={aberto:"aberto",em_atendimento:"em atendimento",concluido:"concluído",pendente:"pendente",descartado:"descartado"};
+  $("filaPed").innerHTML=d.pedidos.length?"<tr><th>Quando</th><th>Cliente / equipamento</th><th>Problema</th><th>Chamado</th><th>Situação</th><th></th></tr>"+d.pedidos.map(p=>`<tr>
+    <td class="mut">${fmt(p.criado_em)}</td><td><span class="dot ${p.online?"on":""}"></span><b>${esc(p.grupo_nome||"Sem grupo")}</b> / ${esc(p.equip_nome||p.hostname)}
+      <div class="mut">${esc(p.nome||"")} ${p.telefone?`· <a target="_blank" href="https://wa.me/${p.telefone.startsWith("55")?"":"55"}${esc(p.telefone)}">${esc(p.telefone)}</a>`:""} · nº ${esc(p.numero_fmt)}</div></td>
+    <td style="max-width:360px">${esc(p.problema)}</td><td>${p.chamado_id?(p.chamado_link?`<a target="_blank" href="${esc(p.chamado_link)}">#${p.chamado_id}</a>`:"#"+p.chamado_id):`<span class="mut" title="${esc(p.gestor_detalhe||"")}">-</span>`}</td>
+    <td><span class="tag t-${p.status==="aberto"?"aguardando":p.status}">${ST[p.status]||p.status}</span>${p.atendido_por?`<div class="mut">${esc(p.atendido_por)}</div>`:""}</td>
+    <td>${p.status==="aberto"?(p.grupo_id?`<button class="btn" onclick='atenderPedido(${JSON.stringify({id:p.id,equipamento_id:p.equipamento_id,chamado_id:p.chamado_id,problema:p.problema})})'>Atender</button>`:`<button class="btn sec" onclick="aba('equip');selNovos()">Vincular primeiro</button>`)
+      +` <button class="btn sec" onclick="descartarPedido(${p.id})">Descartar</button>`:p.status==="em_atendimento"&&p.sessao_id?`<button class="btn sec" onclick="abrirSessao(${p.sessao_id})">Abrir</button>`:""}</td></tr>`).join(""):'<tr><td class="mut">Nenhum pedido de ajuda nos últimos dias.</td></tr>';
+  $("filaGestorMsg").textContent=d.gestor_erro==="desligado"?"Integração desligada (Configurações).":d.gestor_erro?"Gestor indisponível: "+d.gestor_erro:"";
+  $("filaGestor").innerHTML=d.gestor.length?"<tr><th>Chamado</th><th>Cliente</th><th>Problema</th><th>Situação</th><th>Aberto há</th></tr>"+d.gestor.map(c=>`<tr>
+    <td>${c.link?`<a target="_blank" href="${esc(c.link)}">#${c.id}</a>`:"#"+c.id}</td><td><b>${esc(c.cliente||"")}</b><div class="mut">${esc(c.telefone||"")} ${c.tecnico?"· "+esc(c.tecnico):""}</div></td>
+    <td>${esc(c.problema||"")}</td><td><span class="tag ${c.alerta?"t-erro":""}">${esc(c.rotulo||c.status)}</span></td><td class="mut">${esc(c.espera||"")}</td></tr>`).join(""):'<tr><td class="mut">Nenhum chamado aberto.</td></tr>'}
+function atenderPedido(p){iniciarSessao(p.equipamento_id,p)}
+async function descartarPedido(id){if(!confirm("Descartar este pedido? (ex.: já resolvido por telefone)"))return;try{await api("POST",`/api/pedidos/${id}/descartar`);carregaFila()}catch(e){alert(e.message)}}
+function fecharPainel(k){paineis.splice(k,1);desenhaLayout()}
+async function escolherSegundo(){const ab=(await api("GET","/api/sessoes?status=em_andamento")).filter(x=>!paineis.some(p=>p.id===x.id));
+  const r=await dialogo("Abrir lado a lado",ab.length?`<p class="mut">Atendimentos em andamento:</p><select name="s" class="row">${ab.map(x=>`<option value="${x.id}">#${x.id} – ${esc(x.grupo_nome)} / ${esc(x.equip_nome)} (${esc(x.tecnico_ident)})</option>`).join("")}</select>
+    <p class="mut">Para um equipamento novo, use Atender na aba Equipamentos e escolha "Tela dividida".</p>`:'<p>Nenhum outro atendimento aberto. Use Atender na aba Equipamentos e escolha "Tela dividida".</p>',ab.length?[["Cancelar","sec",null],["Abrir","",1]]:[["Ok","",null]]);
+  if(r)abrirSessao(+r.s,1)}
+async function atualizaSessao(){if(!paineis.length)return clearInterval(poll);
+  const novos=await Promise.all(paineis.map(p=>api("GET","/api/sessoes/"+p.id).catch(()=>p)));paineis=novos;paineis.forEach((s,k)=>desenhaExec(k))}
+function desenhaExec(k){const s=paineis[k];if(!$("sTimer"+k))return;$("sTimer"+k).textContent=s.duracao;const lib=s.liberacao;
+  const L={aguardando:["","⏳ Aguardando o cliente autorizar o atendimento na tela dele…"],autorizada:["ok",`✔ Autorizado por ${esc(s.liberado_por)} em ${fmt(s.liberado_em)}`],
+    notificado:["ok","✔ Acesso contínuo – o cliente foi notificado"],negada:["red",`✖ O cliente (${esc(s.liberado_por)}) não autorizou`],sem_resposta:["red","✖ Sem resposta do cliente"]}[lib]||["",lib];
+  $("sLib"+k).innerHTML=`<div class="aviso ${L[0]}">${L[1]} ${["negada","sem_resposta"].includes(lib)?`<button class="btn sec" onclick="pedirDeNovo(${k})">Pedir novamente</button>`:""}</div>`;
+  $("btnExec"+k).disabled=!["autorizada","notificado"].includes(lib);$("btnTela"+k).disabled=$("btnExec"+k).disabled;desenhaPlanos(k);desenhaChatP(k);
+  $("sPart"+k).textContent=(s.participantes||[]).length?"Também no atendimento: "+s.participantes.map(p=>p.tecnico_ident).join(", "):"";
+  const inf=s.info||{};$("sEquip"+k).textContent=[inf.windows,inf.ips?.length?"IP: "+inf.ips.join(", "):"",inf.impressoras?.length?"Impressoras: "+inf.impressoras.join(", "):"",inf.portas_com?.length?"COM: "+inf.portas_com.join(", "):""].filter(Boolean).join(" · ");
+  $("exTab"+k).innerHTML=s.execucoes.length?"<tr><th>Hora</th><th>Procedimento</th><th>Status</th></tr>"+s.execucoes.map(x=>`<tr>
+  <td class="mut">${fmt(x.solicitado_em)}</td><td><b>${esc(x.script_nome)}</b> <span class="mut">${esc(Object.entries(JSON.parse(x.params_json||"{}")).map(([a,v])=>a+"="+v).join(", "))}</span>
+  ${x.saida?`<details><summary class="mut">saída (código ${x.exit_code})</summary><pre>${esc(x.saida)}</pre></details>`:""}</td>
+  <td><span class="tag t-${x.status}">${x.status}</span></td></tr>`).join(""):""}
+async function pedirDeNovo(k){try{await api("POST",`/api/sessoes/${paineis[k].id}/pedir-novamente`);atualizaSessao()}catch(e){alert(e.message)}}
+function desenhaScripts(k){$("selScript"+k).innerHTML=scripts.filter(s=>s.ativo).map(s=>`<option value="${s.id}">${esc(s.nome)}${s.requer_autorizacao?" 🔒":""}</option>`).join("");desenhaParams(k)}
+function desenhaParams(k){const s=scripts.find(x=>x.id==$("selScript"+k).value);if(!s)return;$("sDesc"+k).textContent=s.descricao||"";
+  $("sPrev"+k).textContent=s.conteudo;$("params"+k).innerHTML=s.params.map(p=>`<div class="row"><label style="width:120px">${esc(p)}</label><input data-p="${esc(p)}"></div>`).join("")}
+async function executar(k){const params={};document.querySelectorAll(`#params${k} input`).forEach(i=>params[i.dataset.p]=i.value.trim());
+  try{const d=await api("POST",`/api/sessoes/${paineis[k].id}/executar`,{script_id:+$("selScript"+k).value,params});
+    $("exMsg"+k).textContent=d.requer_autorizacao?"Enviado. Aguardando o cliente autorizar…":"Enviado. O cliente será notificado.";atualizaSessao()}catch(e){$("exMsg"+k).textContent=e.message}}
+async function encerrar(k,st){const s=paineis[k];if(!confirm(`Encerrar #${s.id} (${s.equip_nome}) como ${st==="concluido"?"CONCLUÍDO":"PENDENTE"}?`))return;
+  const d=await api("POST",`/api/sessoes/${s.id}/encerrar`,{status:st,nota:$("nota"+k).value});
+  const g={enviado:"enviado ao gestor de OS",erro:"FALHA ao enviar ao gestor ("+(d.gestor.detalhe||"")+") – reenvie em Relatórios",desativado:"integração com gestor desligada"}[d.gestor.status];
+  alert(`Atendimento encerrado.\nDuração: ${d.duracao}\nRelatório salvo: ${d.relatorio}\nGestor: ${g}`);paineis.splice(k,1);desenhaLayout();if(!paineis.length){clearInterval(poll);aba("rel")}}
+/* ação nos dois pontos e teste de comunicação entre eles */
+async function pedirParams(p,k){const ps=p.definicao.parametros||[];if(!ps.length)return confirm(`Executar "${p.nome}"?`)?{}:null;
+  if(ps.some(x=>x.tipo==="arquivo"))biblioteca=await api("GET","/api/arquivos");
+  const info=paineis[k]?.info||{},lista=(id,vals)=>`<datalist id="${id}">${(vals||[]).map(v=>`<option value="${esc(v)}">`).join("")}</datalist>`;
+  const campo=x=>{const v=esc(x.padrao??"");
+    if(x.tipo==="arquivo")return `<select name="${esc(x.nome)}" class="row"><option value="">Escolha na biblioteca…</option>${biblioteca.map(a=>`<option value="${esc(a.nome)}" ${a.nome===x.padrao?"selected":""}>${esc(a.categoria||"")} · ${esc(a.nome)}</option>`).join("")}</select>`;
+    if(x.tipo==="impressora")return `<input name="${esc(x.nome)}" class="row" list="dl-imp" value="${v}" placeholder="Escolha ou digite">`+lista("dl-imp",info.impressoras);
+    if(x.tipo==="com")return `<input name="${esc(x.nome)}" class="row" list="dl-com" value="${v}">`+lista("dl-com",info.portas_com);
+    return `<input name="${esc(x.nome)}" class="row" ${x.tipo==="segredo"?'type="password"':""} value="${v}">`};
+  const r=await dialogo(p.nome,`<p class="mut">${esc(p.descricao||"")}</p>`+ps.map(x=>`<label class="mut">${esc(x.rotulo||x.nome)}</label>${campo(x)}`).join(""),[["Cancelar","sec",null],["Executar","",1]]);
+  if(!r)return null;const out={};ps.forEach(x=>out[x.nome]=r[x.nome]);return out}
+async function acaoNosDois(){const ativos=plugins.filter(p=>p.ativo);
+  const r=await dialogo("Ação nos dois pontos",`<select name="p" class="row">${ativos.map(p=>`<option value="${p.id}">${esc(p.categoria)} · ${esc(p.nome)}</option>`).join("")}</select>
+    <p class="mut">Roda o mesmo plugin em A e B ao mesmo tempo; os resultados aparecem lado a lado.</p>`,[["Cancelar","sec",null],["Continuar","",1]]);if(!r)return;
+  const p=plugins.find(x=>x.id==r.p);const params=await pedirParams(p,0);if(params===null)return;
+  for(const s of paineis){try{await api("POST",`/api/sessoes/${s.id}/plugin`,{plugin_id:p.id,params})}catch(e){alert(`${s.equip_nome}: ${e.message}`)}}atualizaSessao()}
+async function testeEntrePontos(){const esc_=plugins.find(p=>p.nome.startsWith("Teste entre pontos: abrir")),con=plugins.find(p=>p.nome.startsWith("Teste entre pontos: conectar"));
+  if(!esc_||!con)return alert("Plugins de teste entre pontos não encontrados (aba Plugins).");
+  const ipsA=paineis[0].info?.ips||[],ipsB=paineis[1].info?.ips||[];
+  const r=await dialogo("Teste de comunicação entre os dois pontos",`<label class="mut">Quem recebe a conexão (servidor)</label>
+    <select name="srv" class="row"><option value="0">A – ${esc(paineis[0].equip_nome)}</option><option value="1">B – ${esc(paineis[1].equip_nome)}</option></select>
+    <label class="mut">Porta TCP</label><input name="porta" class="row" value="9999" inputmode="numeric">
+    <label class="mut">IP do servidor (como o outro ponto o enxerga)</label><input name="ip" class="row" list="dl-ips" placeholder="IP do lado escolhido acima">
+    <datalist id="dl-ips">${[...ipsA.map(i=>"A: "+i),...ipsB.map(i=>"B: "+i)].map(v=>`<option value="${esc(v.slice(3))}">${esc(v)}</option>`).join("")}</datalist>
+    <p class="mut">O servidor abre a porta por 90 s (com regra temporária no firewall) e o outro ponto testa ping e 5 conexões, com tempo de resposta.</p>`,[["Cancelar","sec",null],["Iniciar teste","",1]]);
+  if(!r)return;const srv=+r.srv,cli=1-srv,ip=(r.ip||(srv?ipsB:ipsA)[0]||"").trim();if(!ip)return alert("Informe o IP do servidor.");
+  try{await api("POST",`/api/sessoes/${paineis[srv].id}/plugin`,{plugin_id:esc_.id,params:{porta:r.porta,segundos:"90"}})}catch(e){return alert(e.message)}
+  atualizaSessao();setTimeout(async()=>{try{await api("POST",`/api/sessoes/${paineis[cli].id}/plugin`,{plugin_id:con.id,params:{alvo:ip,porta:r.porta}});atualizaSessao()}catch(e){alert(e.message)}},12000);
+  alert(`Teste iniciado: ${LADO[srv]} escutando na porta ${r.porta}; em 12 s ${LADO[cli]} tenta conectar em ${ip}.`)}
+
+/* ---------- scripts ---------- */
+async function carregaScripts(){scripts=await api("GET","/api/scripts");
+  $("slist").innerHTML=scripts.map(s=>`<div class="g" onclick="editScript(${s.id})"><span>${s.ativo?"":"<s>"}${esc(s.nome)}${s.ativo?"":"</s>"}</span><span>${s.requer_autorizacao?"🔒":""}</span></div>`).join("");
+  $("sform").classList.toggle("hide",!EU.admin)}
+function editScript(id){editId=id;const s=scripts.find(x=>x.id===id)||{nome:"",descricao:"",conteudo:"",requer_autorizacao:1,ativo:1,timeout_s:120};
+  $("sfTit").textContent=id?"Editar script":"Novo script";$("fNome").value=s.nome;$("fDesc").value=s.descricao||"";$("fCont").value=s.conteudo;
+  $("fAut").checked=!!s.requer_autorizacao;$("fAtivo").checked=!!s.ativo;$("fTo").value=s.timeout_s;$("sfMsg").textContent=""}
+async function salvarScript(){const b={nome:$("fNome").value,descricao:$("fDesc").value,conteudo:$("fCont").value,requer_autorizacao:$("fAut").checked,ativo:$("fAtivo").checked,timeout_s:+$("fTo").value};
+  try{editId?await api("PUT","/api/scripts/"+editId,b):await api("POST","/api/scripts",b);$("sfMsg").textContent="Salvo.";carregaScripts()}catch(e){$("sfMsg").textContent=e.message}}
+
+/* ---------- relatórios ---------- */
+async function carregaRel(){await carregaTipos();const sel=$("relTipo"),atual=sel.value;
+  sel.innerHTML='<option value="">Todos os tipos</option>'+tipos.map(x=>`<option ${x.nome===atual?"selected":""}>${esc(x.nome)}</option>`).join("");
+  const ss=await api("GET","/api/sessoes?limite=200"+(atual?"&tipo="+encodeURIComponent(atual):""));
+  $("relTab").innerHTML="<tr><th>#</th><th>Empresa / equipamento</th><th>Técnico</th><th>Início</th><th>Duração</th><th>Status</th><th>Gestor de OS</th><th></th></tr>"+ss.map(s=>`<tr>
+  <td>${s.id}</td><td>${s.tipo_problema?`<span class="tipo-tag">${esc(s.tipo_problema)}</span><br>`:""}${esc(s.grupo_nome)} / ${esc(s.equip_nome)}${s.os_numero?`<div class="mut">OS ${esc(s.os_numero)}</div>`:""}</td><td>${esc(s.tecnico_ident||s.tecnico_nome)}</td>
+  <td>${fmt(s.inicio)}</td><td>${s.duracao}</td><td><span class="tag t-${s.status}">${s.status.replace("_"," ")}</span></td>
+  <td>${s.gestor_status?`<span class="tag t-${s.gestor_status}" title="${esc(s.gestor_detalhe||"")}">${s.gestor_status}</span>`:""}
+    ${s.status!=="em_andamento"&&s.gestor_status!=="enviado"?`<button class="btn sec" onclick="reenviar(${s.id})">Enviar</button>`:""}</td>
+  <td>${s.relatorio?`<button class="btn sec" onclick="verRel(${s.id})">Relatório</button>`:s.status==="em_andamento"?`<button class="btn sec" onclick="abrirSessao(${s.id})">Abrir</button>`:""}</td></tr>`).join("")}
+async function verRel(id){const r=await fetch(`/api/sessoes/${id}/relatorio`,{headers:{Authorization:"Bearer "+TOKEN}});const b=await r.blob();window.open(URL.createObjectURL(b))}
+async function reenviar(id){const d=await api("POST",`/api/sessoes/${id}/reenviar-gestor`);alert("Gestor: "+d.status+(d.detalhe?" ("+d.detalhe+")":""));carregaRel()}
+
+/* ---------- técnicos ---------- */
+let tecs=[];
+async function carregaTec(){tecs=await api("GET","/api/tecnicos");
+  $("tecTab").innerHTML="<tr><th>Técnico</th><th>Usuário</th><th>Atendimentos</th><th></th></tr>"+tecs.map(t=>`<tr>
+   <td>${t.ativo?"":"<s>"}<b>${esc(t.nome)}</b>${t.ativo?"":"</s>"}<div class="mut">${esc(t.funcao||"")} ${t.telefone?"· "+esc(t.telefone):""} ${t.admin?"· administrador":""}</div></td>
+   <td>${esc(t.usuario)}</td><td>${t.atendimentos}</td>
+   <td><button class="btn sec" onclick="editTec(${t.id})">Editar</button> <button class="btn sec" onclick="ativarTec(${t.id},${t.ativo?0:1})">${t.ativo?"Desativar":"Reativar"}</button></td></tr>`).join("")}
+function editTec(id){tecEdit=id;const t=tecs.find(x=>x.id===id)||{nome:"",funcao:"",telefone:"",usuario:"",admin:0};
+  $("tfTit").textContent=id?"Editar técnico":"Novo técnico";$("tNome").value=t.nome;$("tFuncao").value=t.funcao||"";$("tTel").value=t.telefone||"";
+  $("tUser").value=t.usuario;$("tUser").disabled=!!id;$("tSenha").value="";$("tSenha").placeholder=id?"Nova senha (deixe vazio para manter)":"Senha (mín. 8)";$("tAdm").checked=!!t.admin;$("tMsg").textContent=""}
+async function salvarTec(){const b={nome:$("tNome").value.trim(),funcao:$("tFuncao").value.trim(),telefone:$("tTel").value.trim(),admin:$("tAdm").checked};
+  try{if(tecEdit){if($("tSenha").value)b.senha=$("tSenha").value;await api("PATCH","/api/tecnicos/"+tecEdit,b)}
+    else{b.usuario=$("tUser").value.trim();b.senha=$("tSenha").value;await api("POST","/api/tecnicos",b)}
+    $("tMsg").textContent="Salvo.";editTec(null);carregaTec()}catch(e){$("tMsg").textContent=e.message}}
+async function ativarTec(id,a){try{await api("PATCH","/api/tecnicos/"+id,{ativo:!!a});carregaTec()}catch(e){alert(e.message)}}
+
+/* ---------- configurações ---------- */
+async function carregaCfg(){const ia=await api("GET","/api/config/ia");$("iaAtivo").checked=ia.ativo;$("iaModelo").value=ia.modelo;$("iaChave").placeholder=ia.tem_chave?"Chave salva (deixe vazio para manter)":"Chave da API Anthropic";
+  const c=await api("GET","/api/config/gestor");$("gAtivo").checked=c.ativo;$("gUrl").value=c.url;$("gTok").placeholder=c.tem_token?"Token salvo (deixe vazio para manter)":"Token de acesso (opcional)";$("gMsg").textContent=""}
+async function salvarGestor(){const b={ativo:$("gAtivo").checked,url:$("gUrl").value.trim()};if($("gTok").value)b.token=$("gTok").value;
+  try{await api("PUT","/api/config/gestor",b);$("gTok").value="";$("gMsg").textContent="Salvo.";carregaCfg()}catch(e){$("gMsg").textContent=e.message}}
+async function testarGestor(){const d=await api("POST","/api/config/gestor/testar");$("gMsg").textContent=(d.ok?"✔ Gestor respondeu ":"✖ Falhou ")+d.detalhe}
+
+/* ---------- plugins de ação ---------- */
+let plugins=[],plugEdit=null,alertasVistos=new Set();
+const PST={aguardando:"na fila",entregue:"enviado",executando:"executando…",ok:"concluído",falhou:"falhou",concluido_com_falhas:"concluído com falhas",negado:"negado pelo cliente",cancelado:"cancelado",expirado:"expirado"};
+async function carregaPluginsLista(){plugins=await api("GET","/api/plugins")}
+function desenhaAcoes(k){const ativos=plugins.filter(p=>p.ativo);const tp=tipos.find(x=>x.nome===paineis[k]?.tipo_problema);const sug=(tp?.categorias||[]).filter(c=>ativos.some(p=>p.categoria===c));
+  const cats=[...sug,...[...new Set(ativos.map(p=>p.categoria))].filter(c=>!sug.includes(c))];
+  const bloco=c=>`<div class="mut" style="margin:6px 0 4px">${sug.includes(c)?"⭐ ":""}${esc(c)}</div><div class="acoes">`+ativos.filter(p=>p.categoria===c).map(p=>
+   `<button class="acao" onclick="rodarPlugin(${p.id},${k})"><b>${esc(p.nome)}</b>${p.requer_autorizacao?" 🔒":""}${p.automatico?" ⚡":""}<small>${esc(p.descricao||"")}</small></button>`).join("")+"</div>";
+  $("acoes"+k).innerHTML=(sug.length?`<p class="mut" style="margin:0">⭐ Sugeridos para <b>${esc(tp.nome)}</b></p>`:"")+cats.map(bloco).join("")||'<p class="mut">Nenhum plugin ativo.</p>'}
+async function rodarPlugin(id,k){const p=plugins.find(x=>x.id===id),s=paineis[k];
+  if(!["autorizada","notificado"].includes(s.liberacao))return alert("Aguardando o cliente liberar o atendimento.");
+  const params=await pedirParams(p,k);if(params===null)return;
+  try{await api("POST",`/api/sessoes/${s.id}/plugin`,{plugin_id:id,params});atualizaSessao()}catch(e){alert(e.message)}}
+function desenhaPlanos(k){const pl=paineis[k].planos||[];if(!pl.length){$("planos"+k).innerHTML='<p class="mut">Nenhuma ainda.</p>';return}
+  $("planos"+k).innerHTML=pl.slice().reverse().map(p=>`<div class="plano ${p.status}"><div class="row" style="justify-content:space-between"><b>${esc(p.plugin_nome)}${p.automatico?" ⚡":""}</b>
+   <span class="tag t-${p.status==="ok"?"ok":["falhou","concluido_com_falhas","negado"].includes(p.status)?"erro":"aguardando"}">${PST[p.status]||p.status}</span></div>
+   <div class="mut">${fmt(p.solicitado_em)} · ${esc(p.solicitado_por)}${Object.keys(p.params).length?" · "+esc(Object.entries(p.params).map(([a,v])=>a+"="+v).join(", ")):""}</div>
+   ${p.passos.map(x=>`<div class="passo"><span class="st-${x.status}">${x.status==="ok"?"✔":x.status==="falhou"?"✖":"○"}</span><span>${esc(x.nome)}</span>
+     ${x.saida?`<details><summary class="mut">saída</summary><pre>${esc(x.saida)}</pre></details>`:""}</div>`).join("")}
+   ${["falhou","concluido_com_falhas"].includes(p.status)?`<button class="btn sec" onclick="analisar(${p.id})">Analisar falha com IA</button>`:""}
+   ${p.analise_ia?`<details open><summary><b>Análise da IA</b></summary><pre>${esc(p.analise_ia)}</pre></details>`:""}</div>`).join("")}
+async function analisar(id){try{await api("POST",`/api/planos/${id}/analisar`);atualizaSessao()}catch(e){alert(e.message)}}
+async function verAlertas(){let al;try{al=await api("GET","/api/alertas")}catch(e){return}
+  const bar=$("alertBar");if(!al.length){bar.classList.add("hide");return}
+  const novo=al.some(a=>!alertasVistos.has(a.id));al.forEach(a=>alertasVistos.add(a.id));
+  bar.classList.remove("hide");bar.innerHTML=`<b>⚠ ${al.length} alerta(s)</b>`+al.slice(0,3).map(a=>`<span>${esc(a.grupo_nome||"")} / ${esc(a.equip_nome||"")}: ${esc(a.titulo)}
+    <button onclick="abrirSessao(${a.sessao_id})">Ver</button><button onclick="resolverAlerta(${a.id})">OK</button></span>`).join("");
+  if(novo){try{const c=new AudioContext(),o=c.createOscillator();o.frequency.value=880;o.connect(c.destination);o.start();setTimeout(()=>o.stop(),350)}catch(e){}
+    if(window.Notification&&Notification.permission==="granted")new Notification("Help me! – alerta",{body:al[0].titulo});
+    else if(window.Notification&&Notification.permission==="default")Notification.requestPermission()}}
+async function resolverAlerta(id){await api("POST",`/api/alertas/${id}/resolver`);verAlertas()}
+const MODELO_PLUGIN={nome:"Novo plugin",descricao:"",categoria:"Geral",versao:"1.0",automatico:false,requer_autorizacao:false,
+  parametros:[{nome:"alvo",rotulo:"IP ou nome",tipo:"texto",padrao:"8.8.8.8"}],arquivos:[],
+  passos:[{nome:"Primeiro passo",script:"Test-Connection {{alvo}} -Count 2",timeout_s:60,verificar:{tipo:"codigo_zero",valor:""},em_falha:"parar"}]};
+async function carregaPlugins(){await carregaPluginsLista();
+  $("plist").innerHTML=plugins.map(p=>`<div class="g ${plugEdit===p.id?"on":""}" onclick="editPlugin(${p.id})"><span>${p.ativo?"":"<s>"}${esc(p.nome)}${p.ativo?"":"</s>"} <span class="mut">${esc(p.categoria)}</span></span>
+    <span>${p.automatico?"⚡":""}${p.requer_autorizacao?"🔒":""} <button class="btn sec" onclick="event.stopPropagation();ativarPlugin(${p.id},${p.ativo?0:1})">${p.ativo?"Desativar":"Ativar"}</button></span></div>`).join("");
+  if(plugEdit===null&&!$("pfJson").value)editPlugin(null)}
+function editPlugin(id){plugEdit=id;const p=plugins.find(x=>x.id===id);$("pfTit").textContent=p?"Editar: "+p.nome:"Novo plugin";
+  $("pfJson").value=JSON.stringify(p?p.definicao:MODELO_PLUGIN,null,2);$("pfMsg").textContent="";
+  document.querySelectorAll("#plist .g").forEach((el,i)=>el.classList.toggle("on",plugins[i]?.id===id))}
+async function salvarPlugin(){let d;try{d=JSON.parse($("pfJson").value)}catch(e){$("pfMsg").textContent="JSON inválido: "+e.message;return}
+  try{if(plugEdit)await api("PUT","/api/plugins/"+plugEdit,d);else{const r=await api("POST","/api/plugins",d);plugEdit=r.id}$("pfMsg").textContent="Salvo.";carregaPlugins()}catch(e){$("pfMsg").textContent=e.message}}
+async function ativarPlugin(id,a){await api("POST",`/api/plugins/${id}/ativo`,{ativo:!!a});carregaPlugins()}
+function exportar(){const b=new Blob([$("pfJson").value],{type:"application/json"}),a=document.createElement("a");
+  a.href=URL.createObjectURL(b);a.download=(JSON.parse($("pfJson").value).nome||"plugin").replace(/[^\w-]+/g,"_")+".hmplugin.json";a.click()}
+function importar(inp){const f=inp.files[0];if(!f)return;f.text().then(t=>{plugEdit=null;$("pfTit").textContent="Importar: "+f.name;$("pfJson").value=t;$("pfMsg").textContent="Revise e clique em Salvar.";inp.value=""})}
+let biblioteca=[];
+async function carregaBib(){biblioteca=await api("GET","/api/arquivos");desenhaBib()}
+function desenhaBib(){const q=($("bibBusca")?.value||"").toLowerCase();const it=biblioteca.filter(a=>(a.nome+" "+(a.descricao||"")+" "+(a.categoria||"")).toLowerCase().includes(q));
+  const cats=[...new Set(it.map(a=>a.categoria||"Outros"))];
+  $("arqList").innerHTML=cats.map(c=>`<div class="mut" style="margin:10px 0 4px"><b>${esc(c)}</b></div>`+it.filter(a=>(a.categoria||"Outros")===c).map(a=>`<div class="row" style="justify-content:space-between;border-bottom:1px solid #eee">
+    <span><b>${esc(a.nome)}</b> <span class="mut">${(a.tamanho/1048576).toFixed(1)} MB · ${fmt(a.enviado_em)} · ${esc(a.enviado_por)}</span><div class="mut">${esc(a.descricao||"")}</div></span>
+    ${EU.admin?`<span><button class="btn sec" onclick="editarArq('${esc(a.nome)}')">Editar</button> <button class="btn sec" onclick="apagarArq('${esc(a.nome)}')">Apagar</button></span>`:""}</div>`).join("")).join("")||'<p class="mut">Biblioteca vazia.</p>'}
+async function enviarArq(){const f=$("arqFile").files[0];if(!f)return;$("arqMsg").textContent="Enviando… ("+(f.size/1048576).toFixed(1)+" MB)";
+  const q=new URLSearchParams({categoria:$("arqCat").value,descricao:$("arqDesc").value});
+  const r=await fetch("/api/arquivos/"+encodeURIComponent(f.name.replace(/[^A-Za-z0-9._-]/g,"_"))+"?"+q,{method:"PUT",headers:{Authorization:"Bearer "+TOKEN},body:f});
+  const d=await r.json().catch(()=>({}));$("arqMsg").textContent=r.ok?"Enviado: "+d.nome:"Erro: "+(d.detail||r.status);$("arqFile").value="";$("arqDesc").value="";carregaBib()}
+async function editarArq(n){const a=biblioteca.find(x=>x.nome===n);const r=await dialogo("Editar "+n,`<input name="categoria" class="row" value="${esc(a.categoria||"")}"><input name="descricao" class="row" value="${esc(a.descricao||"")}" placeholder="Descrição">`,[["Cancelar","sec",null],["Salvar","",1]]);
+  if(!r)return;await api("PATCH","/api/arquivos/"+encodeURIComponent(n),{categoria:r.categoria||"Outros",descricao:r.descricao});carregaBib()}
+async function apagarArq(n){if(!confirm("Apagar "+n+" da biblioteca?"))return;await api("DELETE","/api/arquivos/"+encodeURIComponent(n));carregaBib()}
+async function salvarIA(){const b={ativo:$("iaAtivo").checked,modelo:$("iaModelo").value.trim()||"claude-sonnet-5-5"};if($("iaChave").value)b.chave=$("iaChave").value;
+  try{await api("PUT","/api/config/ia",b);$("iaChave").value="";$("iaMsg").textContent="Salvo.";carregaCfg()}catch(e){$("iaMsg").textContent=e.message}}
+
+/* ---------- tipos de problema ---------- */
+let tipos=[];
+async function carregaTipos(){try{tipos=await api("GET","/api/tipos-problema")}catch(e){}}
+async function trocarTipo(k){await carregaTipos();const s=paineis[k];
+  const r=await dialogo("Tipo de problema",`<select name="tipo" class="row">${tipos.filter(x=>x.ativo).map(x=>`<option ${x.nome===s.tipo_problema?"selected":""}>${esc(x.nome)}</option>`).join("")}</select>`,[["Cancelar","sec",null],["Salvar","",1]]);
+  if(!r)return;await api("PATCH","/api/sessoes/"+s.id,{tipo_problema:r.tipo});s.tipo_problema=r.tipo;desenhaLayout()}
+async function carregaProb(){await carregaTipos();const d=await api("GET","/api/tipos-problema/resumo?dias="+$("probDias").value);
+  const nomes=[...tipos.filter(x=>x.ativo).map(x=>x.nome),...Object.keys(d.tipos).filter(n=>!tipos.some(x=>x.nome===n))];
+  $("probCards").innerHTML=nomes.map(n=>{const t=d.tipos[n]||{total:0,concluido:0,pendente:0,em_andamento:0,tempo_medio:"00:00:00"};
+    return `<button class="pcard" onclick="verTipoRel('${esc(n)}')"><b>${esc(n)}</b><div class="n">${t.total}</div>
+      <div class="mut">${t.concluido} concluídos · ${t.pendente} pendentes · ${t.em_andamento} em andamento</div><div class="mut">Tempo médio ${t.tempo_medio}</div></button>`}).join("");
+  if(!EU.admin)return;
+  $("tipoTab").innerHTML="<tr><th>Tipo</th><th>Categorias sugeridas</th><th></th></tr>"+tipos.map(x=>`<tr><td>${x.ativo?"":"<s>"}<b>${esc(x.nome)}</b>${x.ativo?"":"</s>"}<div class="mut">${esc(x.descricao||"")}</div></td>
+    <td class="mut">${esc(x.categorias.join(", "))}</td><td><button class="btn sec" onclick="editTipo(${x.id})">Editar</button></td></tr>`).join("")}
+function verTipoRel(n){aba("rel");setTimeout(()=>{$("relTipo").value=n;carregaRel()},50)}
+async function editTipo(id){await carregaPluginsLista();const x=tipos.find(t=>t.id===id)||{nome:"",descricao:"",categorias:[],ordem:tipos.length,ativo:1};
+  const cats=[...new Set(plugins.map(p=>p.categoria))].sort();
+  const r=await dialogo(id?"Editar tipo":"Novo tipo de problema",`<input name="nome" class="row" placeholder="Nome (ex.: PDV)" value="${esc(x.nome)}">
+    <input name="descricao" class="row" placeholder="Descrição" value="${esc(x.descricao||"")}">
+    <p class="mut">Categorias de ações sugeridas primeiro:</p>${cats.map(c=>`<label class="row"><input type="checkbox" name="cat_${esc(c)}" style="width:auto" ${x.categorias.includes(c)?"checked":""}> ${esc(c)}</label>`).join("")}
+    <label class="row"><input type="checkbox" name="ativo" style="width:auto" ${x.ativo?"checked":""}> Ativo</label>`,[["Cancelar","sec",null],["Salvar","",1]]);
+  if(!r)return;const body={nome:r.nome.trim(),descricao:r.descricao,categorias:cats.filter(c=>r["cat_"+c]),ordem:x.ordem,ativo:!!r.ativo};
+  try{id?await api("PUT","/api/tipos-problema/"+id,body):await api("POST","/api/tipos-problema",body);carregaProb()}catch(e){alert(e.message)}}
+
+/* ---------- marca ---------- */
+let MARCA={};
+async function aplicaMarca(){try{MARCA=await (await fetch("/api/marca")).json()}catch(e){return}const t=Date.now();
+  document.title=MARCA.nome+" – Acesso remoto";document.querySelectorAll(".mNome").forEach((el,i)=>{el.textContent=MARCA.nome.replace(/!$/,"");if(!el.closest("header"))el.style.color=MARCA.cor_nome});
+  document.querySelectorAll(".mIcone").forEach(el=>el.src="/api/marca/icone?"+t);
+  const lg=$("logoLoja");if(MARCA.tem_logo){lg.src="/api/marca/logo?"+t;lg.classList.remove("hide");$("mkLogoPrev").src="/api/marca/logo?"+t;$("mkLogoPrev").classList.remove("hide")}else{lg.classList.add("hide");$("mkLogoPrev").classList.add("hide")}
+  $("mkNome").value=MARCA.nome;$("mkCorNome").value=MARCA.cor_nome;$("mkCorIcone").value=MARCA.cor_icone}
+async function salvarMarca(){try{await api("PUT","/api/config/marca",{nome:$("mkNome").value.trim(),cor_nome:$("mkCorNome").value,cor_icone:$("mkCorIcone").value});$("mkMsg").textContent="Salvo.";aplicaMarca()}catch(e){$("mkMsg").textContent=e.message}}
+async function enviarMarca(q,inp){const f=inp.files[0];if(!f)return;const r=await fetch("/api/marca/"+q,{method:"PUT",headers:{Authorization:"Bearer "+TOKEN},body:f});
+  const d=await r.json().catch(()=>({}));$("mkMsg").textContent=r.ok?"Imagem atualizada.":"Erro: "+(d.detail||r.status);inp.value="";aplicaMarca()}
+async function apagarMarca(q){await api("DELETE","/api/marca/"+q);aplicaMarca()}
+aplicaMarca();
+
+if(TOKEN&&EU)iniciar();
+</script>
+</body>
+</html>

@@ -1,0 +1,20 @@
+{% extends "_base.html" %}
+{% block titulo %}Chamado #{{ c.id }} — {{ loja }}{% endblock %}
+{% block css %}.st{display:flex;flex-direction:row-reverse;justify-content:center;gap:6px;margin:10px 0}.st input{display:none}
+.st label{font-size:44px;color:var(--lin);cursor:pointer}.st input:checked~label,.st label:hover,.st label:hover~label{color:#f5a623}
+dl{display:grid;grid-template-columns:auto 1fr;gap:6px 12px}dt{color:var(--mut)}dd{margin:0}{% endblock %}
+{% block conteudo %}
+<div class="mini" style="max-width:500px"><div class="card">
+ <span class="mut">{{ loja }} · suporte ao sistema</span><h1>Chamado #{{ c.id }} — {{ c.rotulo }}</h1>
+ <dl style="margin:14px 0"><dt>Problema</dt><dd>{{ c.problema }}</dd><dt>Aberto em</dt><dd>{{ c.aberto_em|dt('%d/%m/%Y %H:%M') }}</dd>
+  {% if c.tecnico %}<dt>Técnico</dt><dd>{{ c.tecnico }}</dd>{% endif %}{% if c.solucao %}<dt>Solução</dt><dd>{{ c.solucao }}</dd>{% endif %}
+  <dt>Tempo total</dt><dd>{{ fm(c.total) }}</dd></dl>
+ {% if c.status == 'aguardando' %}<p><b>Estamos aguardando um retorno seu para continuar.</b></p>{% endif %}
+ {% if c.status == 'concluido' %}{% if c.nota %}<p class="ok"><b>Obrigado pela avaliação!</b></p>{% else %}
+  <h2 style="text-align:center;margin-top:16px">Como foi o atendimento?</h2>
+  <form method="post"><div class="st">{% for n in [5,4,3,2,1] %}<input type="radio" name="nota" id="n{{ n }}" value="{{ n }}" required><label for="n{{ n }}">★</label>{% endfor %}</div>
+  <textarea name="comentario" rows="3" placeholder="Críticas, sugestões ou elogios (opcional)"></textarea><button>Enviar avaliação</button></form>{% endif %}{% endif %}
+ {% if zap %}<p style="margin-top:14px"><a href="https://wa.me/{{ zap }}?text=Ol%C3%A1%2C%20sobre%20o%20chamado%20{{ c.id }}">Falar com o suporte no WhatsApp</a></p>{% endif %}
+</div>
+ <p class="mut" style="text-align:center;font-size:12px;margin-top:10px"><a href="/privacidade">Aviso de privacidade</a></p></div>
+{% endblock %}

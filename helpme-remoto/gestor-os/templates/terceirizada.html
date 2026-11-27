@@ -1,0 +1,35 @@
+{% extends "_base.html" %}
+{% block titulo %}Terceirizada — {{ loja }}{% endblock %}
+{% block corpo %}{{ 'tv' if tv }}{% endblock %}
+{% block css %}
+.topo{display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin-bottom:14px}.topo .esp{flex:1}
+.fx{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:12px}.fx .card{border-left:8px solid var(--c)}.fx b{font-size:34px;display:block;color:var(--c)}.tv .fx b{font-size:54px}
+.verde{--c:var(--ok)}.amarelo{--c:#e09400}.vermelho{--c:var(--al)}
+table{width:100%;border-collapse:collapse}th,td{text-align:left;padding:9px 10px;border-bottom:1px solid var(--lin);vertical-align:top}
+th{font-size:12px;color:var(--mut);text-transform:uppercase;letter-spacing:.04em}.tv td{font-size:19px}.rol{overflow-x:auto}
+tr.l td:first-child{border-left:8px solid var(--c)}
+.tag{display:inline-block;padding:1px 8px;border-radius:99px;font-size:12px;font-weight:600;background:var(--al);color:#fff}
+.sn{display:inline-flex;align-items:center;gap:7px;font-weight:700;color:var(--c);white-space:nowrap}.sn i{width:13px;height:13px;border-radius:50%;background:var(--c)}
+{% endblock %}
+{% block conteudo %}
+{% set qs = ('&tv=1' if tv else '') ~ ('&chave=' ~ chave if chave else '') %}
+{% if tv %}<meta http-equiv="refresh" content="60">{% endif %}
+<div class="wrap">
+ <div class="topo"><h1>{{ loja }}</h1><div class="nav"><a href="/painel?{{ qs[1:] }}">Ordens de serviço</a><a class="at" href="/terceirizada?{{ qs[1:] }}">Terceirizada ({{ lista|length }})</a><a href="/chamados?{{ qs[1:] }}">Chamados</a>{% if not tv and not chave %}<a href="/config">Configuração</a>{% endif %}</div>
+  <span class="mut">Atualizado {{ d.ultima_sync|dt if d.ultima_sync else 'nunca' }}</span><span class="esp"></span>
+  {% if not tv %}<a class="btn" href="/terceirizada?tv=1">Modo telão</a><a href="/sair">Sair</a>{% else %}<span class="mut">{{ hoje|dt('%d/%m/%Y %H:%M') }}</span>{% endif %}</div>
+ {% if cont.vermelho %}<div class="alerta {{ 'pisca' if tv }}">⚠ {{ cont.vermelho }} equipamento(s) na terceirizada além do prazo de {{ cfg.PRAZO_TERCEIRIZADA_DIAS }} dias</div>{% endif %}
+ <div class="fx">
+  <div class="card verde"><h2>No prazo</h2><b>{{ cont.verde }}</b><span class="mut">menos de {{ cfg.TERC_AMARELO_DIAS }} dias fora</span></div>
+  <div class="card amarelo"><h2>Atenção</h2><b>{{ cont.amarelo }}</b><span class="mut">de {{ cfg.TERC_AMARELO_DIAS }} a {{ cfg.PRAZO_TERCEIRIZADA_DIAS - 1 }} dias fora</span></div>
+  <div class="card vermelho"><h2>Vencido</h2><b>{{ cont.vermelho }}</b><span class="mut">{{ cfg.PRAZO_TERCEIRIZADA_DIAS }} dias ou mais fora</span></div></div>
+ <div class="card rol"><table>
+  <tr><th>OS</th><th>Cliente</th><th>Equipamento</th><th>Nº série</th><th>Entrada na loja</th><th>Enviado em</th><th>Dias fora</th><th>Status</th><th>Último evento</th></tr>
+  {% for o in lista %}<tr class="l {{ o.sinal.cor }}"><td><b>{{ o.codigo }}</b>{% if o.garantia %}<br><span class="tag atr">garantia</span>{% endif %}</td><td>{{ o.cliente|reserva(tv) }}</td>
+   <td>{{ o.equipamento }}{% if not tv and o.problema %}<br><span class="mut">{{ o.problema[:90] }}</span>{% endif %}</td><td>{{ o.serie or '—' }}</td>
+   <td>{{ o.abertura|dt('%d/%m/%y') }}</td><td>{{ (o.evento_em or o.abertura)|dt('%d/%m/%y') }}</td><td><b>{{ o.sinal.dias }} d</b></td>
+   <td><span class="sn"><i></i>{{ o.sinal.rot }}</span>{% if o.sinal.legal %}<br><span class="mut">{{ o.sinal.legal }}</span>{% endif %}</td><td>{{ o.status }}</td></tr>
+  {% else %}<tr><td colspan="9" class="mut">Nenhum equipamento na terceirizada.</td></tr>{% endfor %}</table></div>
+ {% if not tv %}<p class="mut">"Enviado em" é a data do último evento lançado na OS no Uniplus. As faixas de dias são ajustadas na Configuração.</p>{% endif %}
+</div>
+{% endblock %}

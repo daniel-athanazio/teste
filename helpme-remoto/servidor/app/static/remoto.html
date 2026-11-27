@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Tela remota</title>
+<style>
+:root{--bg:#0b0e13;--bar:#161b22;--bd:#30363d;--tx:#e6edf3;--mut:#8b949e;--ac:#2EB872;--red:#f85149;--y:#d29922}
+*{box-sizing:border-box}html,body{height:100%;margin:0}
+body{background:var(--bg);color:var(--tx);font:13px "Segoe UI",system-ui,sans-serif;display:flex;flex-direction:column;overflow:hidden}
+#barra{display:flex;align-items:center;gap:6px;padding:6px 8px;background:var(--bar);border-bottom:1px solid var(--bd);flex-wrap:wrap}
+#barra .tit{font-weight:600;margin-right:6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:280px}
+#barra .sp{flex:1}
+button,select{font:inherit;color:var(--tx);background:#21262d;border:1px solid var(--bd);border-radius:6px;padding:5px 9px;cursor:pointer}
+button:hover,select:hover{border-color:#8b949e}button.on{background:#1f6feb;border-color:#1f6feb}button.red{background:#da3633;border-color:#da3633}
+.menu{position:relative}.menu>div{position:absolute;top:110%;left:0;background:var(--bar);border:1px solid var(--bd);border-radius:8px;padding:4px;display:none;z-index:20;min-width:190px}
+.menu.aberto>div{display:block}.menu>div button{display:block;width:100%;text-align:left;border:0;background:none;padding:7px 10px}.menu>div button:hover{background:#30363d}
+#stat{color:var(--mut);font-size:12px;white-space:nowrap}
+.dot{display:inline-block;width:8px;height:8px;border-radius:50%;background:#666;margin-right:5px}.dot.on{background:#3fb950}
+#area{flex:1;position:relative;display:flex;overflow:hidden}
+#palco{flex:1;display:flex;align-items:center;justify-content:center;overflow:auto;outline:none}
+#palco.real{align-items:flex-start;justify-content:flex-start}
+canvas{background:#000;image-rendering:auto;max-width:100%;max-height:100%;touch-action:none}
+#palco.real canvas{max-width:none;max-height:none}
+#aviso{position:absolute;left:50%;top:12px;transform:translateX(-50%);background:#bb800926;border:1px solid var(--y);color:#f2cc60;padding:8px 14px;border-radius:8px;display:none;z-index:5}
+#capa{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:12px;background:#0b0e13e6;z-index:10;text-align:center;padding:20px}
+#capa .grande{font-size:18px;font-weight:600}
+.spin{width:34px;height:34px;border:3px solid #30363d;border-top-color:var(--ac);border-radius:50%;animation:g 1s linear infinite}@keyframes g{to{transform:rotate(360deg)}}
+#chat{width:300px;background:var(--bar);border-left:1px solid var(--bd);display:none;flex-direction:column}
+#chat.on{display:flex}#msgs{flex:1;overflow:auto;padding:10px;display:flex;flex-direction:column;gap:6px}
+.m{padding:7px 9px;border-radius:9px;max-width:90%;white-space:pre-wrap;word-wrap:break-word}.m small{display:block;color:var(--mut);font-size:10.5px}
+.m.eu{align-self:flex-end;background:#1f6feb44}.m.cli{align-self:flex-start;background:#30363d}
+#chat form{display:flex;gap:6px;padding:8px;border-top:1px solid var(--bd)}#chat input{flex:1;font:inherit;background:#0d1117;color:var(--tx);border:1px solid var(--bd);border-radius:6px;padding:7px}
+#toast{position:fixed;right:14px;bottom:14px;background:#161b22;border:1px solid var(--bd);border-radius:10px;padding:10px 12px;display:none;max-width:360px;z-index:30;box-shadow:0 8px 24px #0008}
+dialog{background:var(--bar);color:var(--tx);border:1px solid var(--bd);border-radius:10px;min-width:380px}dialog textarea{width:100%;min-height:120px;background:#0d1117;color:var(--tx);border:1px solid var(--bd);border-radius:6px;padding:8px;font:inherit}
+.badge{background:#da3633;color:#fff;border-radius:9px;padding:0 6px;font-size:11px;margin-left:4px;display:none}
+</style>
+</head>
+<body>
+<div id="barra">
+  <span class="tit" id="tit">Tela remota</span>
+  <button id="bAjuste" title="Ajustar à janela / tamanho real">Ajustar</button>
+  <select id="sMon" title="Monitor"></select>
+  <select id="sQual" title="Qualidade da imagem"><option value="35">Rápida</option><option value="55" selected>Normal</option><option value="80">Alta</option></select>
+  <button id="bCAD" title="Ctrl+Alt+Del">Ctrl+Alt+Del</button>
+  <div class="menu" id="mTeclas"><button>Teclas ▾</button><div>
+    <button data-c="MetaLeft">Tecla Windows</button><button data-c="AltLeft+Tab">Alt+Tab</button>
+    <button data-c="ControlLeft+ShiftLeft+Escape">Gerenciador de tarefas</button><button data-c="MetaLeft+KeyR">Executar (Win+R)</button>
+    <button data-c="MetaLeft+KeyE">Explorador (Win+E)</button><button data-c="MetaLeft+KeyD">Área de trabalho (Win+D)</button>
+    <button data-c="AltLeft+F4">Fechar janela (Alt+F4)</button><button data-c="PrintScreen">Print Screen</button></div></div>
+  <div class="menu" id="mClip"><button>Transferência ▾</button><div>
+    <button id="bEnviaClip">Enviar minha área de transferência</button><button id="bDigitar">Digitar um texto no cliente…</button>
+    <button id="bCopiaClip">Copiar o que o cliente copiou</button></div></div>
+  <button id="bBloq" title="Bloqueia o teclado e o mouse do cliente durante o atendimento">Bloquear cliente</button>
+  <button id="bVer" title="Só ver: não envia mouse nem teclado">Só ver</button>
+  <button id="bFoto" title="Salvar imagem da tela">📷</button>
+  <button id="bCheia" title="Tela cheia (captura Alt+Tab e tecla Windows)">⛶</button>
+  <button id="bChat">Chat<span class="badge" id="nChat">0</span></button>
+  <span class="sp"></span>
+  <span id="stat"><span class="dot" id="dot"></span><span id="statTxt">conectando…</span></span>
+  <button class="red" id="bSair">Sair</button>
+</div>
+<div id="area">
+  <div id="palco" tabindex="0"><canvas id="cv" width="1280" height="720"></canvas></div>
+  <div id="aviso"></div>
+  <div id="capa"><div class="spin"></div><div class="grande" id="capaTxt">Conectando…</div><div id="capaSub" style="color:var(--mut)"></div><div id="capaBot"></div></div>
+  <aside id="chat"><div id="msgs"></div><form id="fChat"><input id="chatTxt" placeholder="Mensagem para o cliente…" maxlength="2000" autocomplete="off"><button>Enviar</button></form></aside>
+</div>
+<div id="toast"></div>
+<dialog id="dlgTexto"><b>Digitar no computador do cliente</b><p style="color:var(--mut);margin:6px 0">O texto é digitado onde estiver o cursor (útil para senhas e comandos longos).</p>
+  <textarea id="txtDigitar"></textarea><div style="text-align:right;margin-top:8px"><button onclick="dlgTexto.close()">Cancelar</button> <button class="on" id="bDigitarOk">Digitar</button></div></dialog>
+<script>
+"use strict";
+const $=id=>document.getElementById(id);
+const P=new URLSearchParams(location.search);const SESSAO=+P.get("sessao");const TOKEN=sessionStorage.hmTok||P.get("t")||"";
+const cv=$("cv"),ctx=cv.getContext("2d",{alpha:false});
+let ws=null,W=0,H=0,somenteVer=false,ajustar=true,fila=Promise.resolve(),quadros=0,bytes=0,clipCliente="",bloq=false,encerrado=false,naoLidas=0,info={};
+const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+function capa(txt,sub,botoes,girar){$("capa").style.display=txt?"flex":"none";if(!txt)return;$("capaTxt").textContent=txt;$("capaSub").textContent=sub||"";
+  $("capaBot").innerHTML=botoes||"";document.querySelector("#capa .spin").style.display=girar?"block":"none"}
+function toast(html,ms){const t=$("toast");t.innerHTML=html;t.style.display="block";clearTimeout(toast.t);toast.t=setTimeout(()=>t.style.display="none",ms||6000)}
+function enviar(o){if(ws&&ws.readyState===1)ws.send(JSON.stringify(o))}
+
+/* ---------- conexão ---------- */
+async function conectar(){
+  if(!SESSAO||!TOKEN){capa("Abra a tela remota pelo painel do atendimento","",'<button onclick="close()">Fechar</button>');return}
+  capa("Conectando ao computador do cliente…","Aguardando o computador responder",'',true);
+  let d;try{const r=await fetch(`/api/sessoes/${SESSAO}/remoto`,{method:"POST",headers:{Authorization:"Bearer "+TOKEN}});d=await r.json();if(!r.ok)throw new Error(d.detail||("Erro "+r.status))}
+  catch(e){capa("Não foi possível abrir a tela",e.message,'<button onclick="conectar()">Tentar de novo</button> <button onclick="close()">Fechar</button>');return}
+  ws=new WebSocket(`${location.protocol==="https:"?"wss":"ws"}://${location.host}/ws/remoto/tecnico?canal=${encodeURIComponent(d.canal)}&ticket=${encodeURIComponent(d.ticket)}`);
+  ws.binaryType="arraybuffer";
+  ws.onmessage=ev=>typeof ev.data==="string"?texto(JSON.parse(ev.data)):binario(ev.data);
+  ws.onclose=ev=>{soltarTudo();$("dot").classList.remove("on");if(encerrado)return;
+    if(ev.code===4000){capa("Acesso encerrado",ev.reason||"",'<button onclick="close()">Fechar</button>');return}
+    capa("Conexão perdida","Verifique a internet. "+(ev.reason||""),'<button onclick="conectar()">Reconectar</button> <button onclick="close()">Fechar</button>')}}
+function texto(m){
+  switch(m.t){
+  case "info":info=m;$("tit").textContent=`${m.grupo||""} / ${m.equipamento} · nº ${m.numero}`;document.title="Tela – "+m.equipamento;
+    $("msgs").innerHTML="";(m.chat||[]).forEach(addChat);naoLidas=0;$("nChat").style.display="none";
+    if(m.outros&&m.outros.length)toast("Também na tela: "+esc(m.outros.join(", ")));
+    if(!m.agente)capa("Aguardando o computador do cliente…","O "+(m.equipamento||"equipamento")+" está abrindo a captura da tela.","",true);break;
+  case "estado":if(m.agente){$("dot").classList.add("on")}else{$("dot").classList.remove("on");capa("O computador do cliente desconectou","Tentando de novo automaticamente…","",true)}break;
+  case "tela":W=m.w;H=m.h;if(cv.width!==W||cv.height!==H){cv.width=W;cv.height=H}
+    $("sMon").innerHTML=m.monitores.map((x,i)=>`<option value="${i}">Monitor ${i+1}${x.principal?" (principal)":""} ${x.w}×${x.h}</option>`).join("")+(m.monitores.length>1?'<option value="-1">Todos os monitores</option>':"");
+    $("sMon").value=m.monitor;$("sMon").style.display=m.monitores.length>1?"":"none";
+    if(m.portatil)toast("O cliente está usando o programa sem instalar: janelas do Windows protegidas (UAC) não aparecem e o bloqueio de teclado/mouse não está disponível.",9000);
+    capa("");$("dot").classList.add("on");$("palco").focus();break;
+  case "cursor":cv.style.cursor=somenteVer?"default":(m.v?m.forma:"none");break;
+  case "desktop":{const a=$("aviso");if(m.nome&&m.nome!=="Default"){a.textContent=m.nome==="Winlogon"?"Tela protegida do Windows (bloqueio ou confirmação do UAC)":"Área de trabalho: "+m.nome;a.style.display="block"}else a.style.display="none";break}
+  case "clip":clipCliente=m.s;toast(`O cliente copiou ${m.s.length} caracteres. <button onclick="copiarCliente()">Copiar aqui</button>`);break;
+  case "chat":addChat(m);if(!$("chat").classList.contains("on")&&!m.tecnico){naoLidas++;$("nChat").textContent=naoLidas;$("nChat").style.display="inline"}break;
+  case "bloq":bloq=m.v;$("bBloq").classList.toggle("on",bloq);$("bBloq").textContent=bloq?"Cliente bloqueado":"Bloquear cliente";break;
+  case "aviso":toast(esc(m.texto));break;
+  case "viewer":if(m.nome!==info.tecnico)toast(esc(m.nome)+(m.entrou?" entrou na tela":" saiu da tela"));break;
+  case "fim":encerrado=true;capa("Acesso encerrado",m.motivo||"",'<button onclick="close()">Fechar</button>');break}}
+function binario(buf){
+  const v=new DataView(buf);bytes+=buf.byteLength;
+  if(v.getUint8(0)===1){const x=v.getUint16(1),y=v.getUint16(3);const blob=new Blob([new Uint8Array(buf,5)],{type:"image/jpeg"});
+    const p=createImageBitmap(blob);fila=fila.then(()=>p).then(b=>{ctx.drawImage(b,x,y);b.close()}).catch(()=>{})}
+  else if(v.getUint8(0)===2){const seq=v.getUint32(1);fila=fila.then(()=>{quadros++;enviar({t:"ack",seq})})}}
+setInterval(()=>{if(ws&&ws.readyState===1)$("statTxt").textContent=`${W}×${H} · ${quadros} q/s · ${Math.round(bytes/1024)} KB/s`;quadros=0;bytes=0},1000);
+
+/* ---------- mouse ---------- */
+function pos(e){const r=cv.getBoundingClientRect();return{x:Math.max(0,Math.min(W-1,Math.round((e.clientX-r.left)*cv.width/r.width))),y:Math.max(0,Math.min(H-1,Math.round((e.clientY-r.top)*cv.height/r.height)))}}
+let movPend=null;
+cv.addEventListener("pointermove",e=>{if(somenteVer)return;const pts=e.getCoalescedEvents?e.getCoalescedEvents():[];movPend=pos(pts.length?pts[pts.length-1]:e)});
+setInterval(()=>{if(movPend){enviar({t:"m",...movPend});movPend=null}},16);
+cv.addEventListener("pointerdown",e=>{$("palco").focus();if(somenteVer)return;e.preventDefault();cv.setPointerCapture(e.pointerId);movPend=null;enviar({t:"md",b:e.button,...pos(e)})});
+cv.addEventListener("pointerup",e=>{if(somenteVer)return;e.preventDefault();movPend=null;enviar({t:"mu",b:e.button,...pos(e)})});
+cv.addEventListener("contextmenu",e=>e.preventDefault());
+let rodaAcc=0;
+cv.addEventListener("wheel",e=>{if(somenteVer)return;e.preventDefault();rodaAcc+=e.deltaMode===1?e.deltaY*33:e.deltaY;
+  while(Math.abs(rodaAcc)>=100){const s=Math.sign(rodaAcc);enviar({t:"w",dy:s*120,dx:0});rodaAcc-=s*100}},{passive:false});
+
+/* ---------- teclado (scancodes: funciona com ABNT2 e qualquer layout do cliente) ---------- */
+const SC={Escape:1,Digit1:2,Digit2:3,Digit3:4,Digit4:5,Digit5:6,Digit6:7,Digit7:8,Digit8:9,Digit9:10,Digit0:11,Minus:12,Equal:13,Backspace:14,Tab:15,
+KeyQ:16,KeyW:17,KeyE:18,KeyR:19,KeyT:20,KeyY:21,KeyU:22,KeyI:23,KeyO:24,KeyP:25,BracketLeft:26,BracketRight:27,Enter:28,ControlLeft:29,
+KeyA:30,KeyS:31,KeyD:32,KeyF:33,KeyG:34,KeyH:35,KeyJ:36,KeyK:37,KeyL:38,Semicolon:39,Quote:40,Backquote:41,ShiftLeft:42,Backslash:43,
+KeyZ:44,KeyX:45,KeyC:46,KeyV:47,KeyB:48,KeyN:49,KeyM:50,Comma:51,Period:52,Slash:53,ShiftRight:54,NumpadMultiply:55,AltLeft:56,Space:57,CapsLock:58,
+F1:59,F2:60,F3:61,F4:62,F5:63,F6:64,F7:65,F8:66,F9:67,F10:68,ScrollLock:70,Numpad7:71,Numpad8:72,Numpad9:73,NumpadSubtract:74,Numpad4:75,Numpad5:76,
+Numpad6:77,NumpadAdd:78,Numpad1:79,Numpad2:80,Numpad3:81,Numpad0:82,NumpadDecimal:83,IntlBackslash:86,F11:87,F12:88,IntlRo:115,NumpadComma:126};
+const EXT={NumpadEnter:28,ControlRight:29,NumpadDivide:53,PrintScreen:55,AltRight:56,NumLock:69,Home:71,ArrowUp:72,PageUp:73,ArrowLeft:75,ArrowRight:77,
+End:79,ArrowDown:80,PageDown:81,Insert:82,Delete:83,MetaLeft:91,MetaRight:92,ContextMenu:93};
+const presas=new Set();
+function tecla(code,d){let sc=SC[code],e=false;if(sc===undefined){sc=EXT[code];e=true}if(sc===undefined)return false;
+  if(d)presas.add(code);else presas.delete(code);enviar({t:"k",sc,e,d});return true}
+function soltarTudo(){[...presas].forEach(c=>tecla(c,false))}
+const palco=$("palco");
+palco.addEventListener("keydown",e=>{if(somenteVer)return;if(tecla(e.code,true))e.preventDefault()});
+palco.addEventListener("keyup",e=>{if(somenteVer)return;if(tecla(e.code,false))e.preventDefault()});
+palco.addEventListener("blur",soltarTudo);window.addEventListener("blur",soltarTudo);
+function combinacao(s){const k=s.split("+");k.forEach(c=>tecla(c,true));k.reverse().forEach(c=>tecla(c,false));palco.focus()}
+document.querySelectorAll("#mTeclas [data-c]").forEach(b=>b.onclick=()=>{combinacao(b.dataset.c);fecharMenus()});
+
+/* ---------- área de transferência ---------- */
+let ultimoLocal="";
+async function enviarClip(manual){try{const t=await navigator.clipboard.readText();if(t&&(manual||t!==ultimoLocal)){ultimoLocal=t;enviar({t:"clip",s:t});if(manual)toast("Área de transferência enviada: agora é só colar (Ctrl+V) no cliente.")}}catch(e){if(manual)toast("O navegador não liberou a leitura da área de transferência. Use “Digitar um texto no cliente”.")}}
+window.addEventListener("focus",()=>{if(!somenteVer)enviarClip(false)});
+function copiarCliente(){if(!clipCliente)return toast("O cliente ainda não copiou nada.");navigator.clipboard.writeText(clipCliente).then(()=>{ultimoLocal=clipCliente;toast("Copiado para o seu computador ✔",2500)})}
+$("bEnviaClip").onclick=()=>{enviarClip(true);fecharMenus()};$("bCopiaClip").onclick=()=>{copiarCliente();fecharMenus()};
+$("bDigitar").onclick=()=>{fecharMenus();$("txtDigitar").value="";dlgTexto.showModal()};
+$("bDigitarOk").onclick=()=>{const t=$("txtDigitar").value;dlgTexto.close();if(t)enviar({t:"txt",s:t});palco.focus()};
+
+/* ---------- barra ---------- */
+function fecharMenus(){document.querySelectorAll(".menu").forEach(m=>m.classList.remove("aberto"))}
+document.querySelectorAll(".menu>button").forEach(b=>b.onclick=e=>{e.stopPropagation();const m=b.parentElement,a=m.classList.contains("aberto");fecharMenus();if(!a)m.classList.add("aberto")});
+document.addEventListener("click",fecharMenus);
+$("bAjuste").onclick=()=>{ajustar=!ajustar;$("palco").classList.toggle("real",!ajustar);$("bAjuste").textContent=ajustar?"Ajustar":"100%"};
+$("sMon").onchange=()=>enviar({t:"mon",i:+$("sMon").value});
+$("sQual").onchange=()=>{enviar({t:"q",v:+$("sQual").value});try{localStorage.hmQual=$("sQual").value}catch(e){}};
+$("bCAD").onclick=()=>{enviar({t:"cad"});palco.focus()};
+$("bBloq").onclick=()=>{if(!bloq&&!confirm("Bloquear o teclado e o mouse do cliente?\nO cliente verá o aviso na janela do Help me! e o bloqueio sai ao encerrar (ou com Ctrl+Alt+Del no computador dele)."))return;enviar({t:"bloq",v:!bloq})};
+$("bVer").onclick=()=>{somenteVer=!somenteVer;soltarTudo();$("bVer").classList.toggle("on",somenteVer);cv.style.cursor="default"};
+$("bFoto").onclick=()=>cv.toBlob(b=>{const a=document.createElement("a");a.href=URL.createObjectURL(b);a.download=`tela_${(info.equipamento||"cliente").replace(/\W+/g,"_")}_${new Date().toISOString().slice(0,19).replace(/\D/g,"")}.png`;a.click()});
+$("bCheia").onclick=async()=>{if(document.fullscreenElement){document.exitFullscreen();return}
+  await document.documentElement.requestFullscreen();try{await navigator.keyboard.lock()}catch(e){}palco.focus()};
+$("bChat").onclick=()=>{$("chat").classList.toggle("on");naoLidas=0;$("nChat").style.display="none";if($("chat").classList.contains("on"))$("chatTxt").focus()};
+$("fChat").onsubmit=e=>{e.preventDefault();const t=$("chatTxt").value.trim();if(!t)return;enviar({t:"chat",texto:t});$("chatTxt").value=""};
+function addChat(m){const d=document.createElement("div");d.className="m "+(m.tecnico?"eu":"cli");
+  d.innerHTML=`<small>${esc(m.de)} · ${new Date(m.quando).toLocaleTimeString("pt-BR",{hour:"2-digit",minute:"2-digit"})}</small>${esc(m.texto)}`;$("msgs").appendChild(d);$("msgs").scrollTop=1e6}
+$("bSair").onclick=()=>{encerrado=true;soltarTudo();if(bloq)enviar({t:"bloq",v:false});try{ws.close(1000)}catch(e){}close();setTimeout(()=>capa("Você saiu da tela","Pode fechar esta janela."),200)};
+window.addEventListener("beforeunload",()=>{soltarTudo();if(bloq)enviar({t:"bloq",v:false})});
+try{if(localStorage.hmQual){$("sQual").value=localStorage.hmQual}}catch(e){}
+conectar().then(()=>{if(ws)ws.addEventListener("open",()=>enviar({t:"q",v:+$("sQual").value}))});
+</script>
+</body>
+</html>

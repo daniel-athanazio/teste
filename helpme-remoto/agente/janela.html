@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Help me!</title>
+<style>
+:root{--cor:#2EB872;--nome:#E84D4D;--tx:#1f2328;--mut:#5f6b76;--bd:#e3e7eb;--bg:#f4f6f8;--card:#fff;--red:#cf222e}
+*{box-sizing:border-box}
+body{margin:0;font:14px "Segoe UI",system-ui,sans-serif;color:var(--tx);background:var(--bg);min-height:100vh;display:flex;flex-direction:column}
+header{display:flex;align-items:center;gap:10px;padding:14px 18px;background:#0d1117;color:#fff}
+header img{width:34px;height:34px;border-radius:8px}
+header b{font-size:20px;letter-spacing:-.3px}
+#conn{margin-left:auto;font-size:12px;display:flex;align-items:center;gap:6px;color:#c9d1d9}
+.dot{width:9px;height:9px;border-radius:50%;background:#888}.dot.on{background:#3fb950;box-shadow:0 0 0 3px #3fb95033}
+main{padding:14px;display:flex;flex-direction:column;gap:12px;flex:1}
+.card{background:var(--card);border:1px solid var(--bd);border-radius:12px;padding:16px}
+.card h2{font-size:13px;margin:0 0 8px;color:var(--mut);font-weight:600;text-transform:uppercase;letter-spacing:.5px}
+.numero{font:700 38px/1.1 "Cascadia Mono",Consolas,monospace;letter-spacing:2px;text-align:center;padding:6px 0;user-select:all}
+.mut{color:var(--mut);font-size:12.5px}
+.centro{text-align:center}
+button{font:inherit;border:0;border-radius:8px;padding:9px 14px;cursor:pointer;background:var(--cor);color:#fff;font-weight:600}
+button.sec{background:#fff;color:var(--tx);border:1px solid var(--bd)}
+button.red{background:var(--red)}
+button:disabled{opacity:.5;cursor:default}
+input,textarea{font:inherit;width:100%;padding:9px 10px;border:1px solid var(--bd);border-radius:8px;margin:4px 0;background:#fff}
+textarea{min-height:70px;resize:vertical}
+.alerta{background:#fff1f0;border:2px solid var(--red);border-radius:12px;padding:14px;display:flex;gap:12px;align-items:center}
+.alerta .pulso{width:14px;height:14px;border-radius:50%;background:var(--red);animation:p 1.2s infinite;flex:none}
+@keyframes p{0%{box-shadow:0 0 0 0 #cf222e88}100%{box-shadow:0 0 0 12px #cf222e00}}
+.tec{display:flex;gap:12px;align-items:center}
+.av{width:46px;height:46px;border-radius:50%;background:var(--cor);color:#fff;display:grid;place-items:center;font-weight:700;font-size:18px;flex:none}
+#msgs{max-height:220px;overflow:auto;display:flex;flex-direction:column;gap:6px;margin-bottom:8px}
+.m{padding:7px 10px;border-radius:10px;max-width:85%;white-space:pre-wrap;word-wrap:break-word}
+.m.eu{align-self:flex-end;background:#dcf5e7}.m.ele{align-self:flex-start;background:#eef1f4}
+.m small{display:block;font-size:10.5px;color:var(--mut)}
+.linha{display:flex;gap:8px}.linha input{margin:0}
+.ok{background:#dafbe1;border-radius:8px;padding:10px}
+.hide{display:none!important}
+footer{padding:10px 16px 14px;display:flex;gap:8px;flex-wrap:wrap;align-items:center;justify-content:space-between}
+a{color:#0969da}
+</style>
+</head>
+<body>
+<header><img id="icone" alt=""><b id="marca">Help me!</b><span id="conn"><span class="dot" id="dot"></span><span id="connTxt">Conectando…</span></span></header>
+<main>
+  <div class="alerta hide" id="telaAviso"><span class="pulso"></span>
+    <div style="flex:1"><b id="telaTxt">O técnico está vendo e controlando a sua tela</b><div class="mut">Você vê tudo o que ele faz. Pode encerrar quando quiser.</div></div>
+    <button class="red" onclick="pedido('encerrar')">Encerrar</button></div>
+
+  <div class="card centro" id="cNumero"><h2>Seu número de acesso</h2>
+    <div class="numero" id="numero">--- --- ---</div>
+    <div class="mut" id="numTxt">Informe este número ao técnico.</div>
+    <div style="margin-top:10px"><button class="sec" onclick="copiar()" id="bCopiar">Copiar número</button></div></div>
+
+  <div class="card hide" id="cSessao"><h2>Atendimento em andamento</h2>
+    <div class="tec"><div class="av" id="av">T</div><div><b id="tecNome"></b><div class="mut" id="tecInfo"></div></div></div></div>
+
+  <div class="card hide" id="cChat"><h2>Conversa com o técnico</h2>
+    <div id="msgs"></div>
+    <div class="linha"><input id="chatTxt" placeholder="Escreva uma mensagem…" maxlength="1000" onkeydown="if(event.key==='Enter')enviarChat()"><button onclick="enviarChat()">Enviar</button></div></div>
+
+  <div class="card" id="cAjuda"><h2>Pedir ajuda</h2>
+    <div id="ajudaForm">
+      <p class="mut" style="margin-top:0">Descreva o problema. O pedido entra na fila de atendimento e um técnico entra em contato.</p>
+      <input id="aNome" placeholder="Seu nome" maxlength="80"><input id="aTel" placeholder="WhatsApp com DDD" maxlength="20" inputmode="tel">
+      <textarea id="aProb" placeholder="O que está acontecendo?" maxlength="1500"></textarea>
+      <button onclick="pedirAjuda()" id="bAjuda">Enviar pedido</button> <span class="mut" id="aMsg"></span></div>
+    <div id="ajudaOk" class="ok hide"></div></div>
+</main>
+<footer><span class="mut" id="rodape"></span>
+  <span><button class="sec hide" id="bRevogar" onclick="revogar()">Cancelar acesso contínuo</button>
+  <button class="hide" id="bInstalar" onclick="instalar()">Instalar para acesso permanente</button></span></footer>
+<script>
+const K=new URLSearchParams(location.search).get("k");const $=id=>document.getElementById(id);
+let E=null,ultChat=-1,iconeOk=false,ajudaDispensada="";
+const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+async function chama(u,b){const r=await fetch(u,{method:b?"POST":"GET",headers:{"X-K":K,"Content-Type":"application/json"},body:b?JSON.stringify(b):undefined});if(!r.ok)throw new Error(await r.text());return r.json()}
+function hora(s){try{return new Date(s).toLocaleTimeString("pt-BR",{hour:"2-digit",minute:"2-digit"})}catch(e){return""}}
+async function atualizar(){let d;try{d=await chama("/estado")}catch(e){return}
+  E=d.estado;const s=E.srv||{};const marca=E.marca||"Help me!";document.title=marca;$("marca").textContent=marca;
+  if(s.cor_marca)document.documentElement.style.setProperty("--cor",s.cor_marca);
+  if(E.servidor&&!iconeOk){$("icone").src=E.servidor+"/api/marca/icone";iconeOk=true}
+  const online=E.online&&(Date.now()-new Date(E.atualizado))<30000;$("dot").classList.toggle("on",online);$("connTxt").textContent=online?"Conectado":"Sem conexão";
+  $("numero").textContent=E.numero||"--- --- ---";
+  $("numTxt").textContent=s.grupo?`Computador cadastrado em ${s.grupo}.`:`Informe este número ao técnico da ${d.contato}.`;
+  const ses=s.sessao;$("cSessao").classList.toggle("hide",!ses);
+  if(ses){$("tecNome").textContent=ses.tecnico;$("av").textContent=(ses.tecnico||"T").trim()[0].toUpperCase();
+    $("tecInfo").textContent=[ses.tipo,ses.telefone,ses.inicio?"desde "+hora(ses.inicio):""].filter(Boolean).join(" · ")}
+  const tela=s.tela||E.tela_local;$("telaAviso").classList.toggle("hide",!tela);
+  if(tela)$("telaTxt").textContent=(ses?ses.tecnico.split(" – ")[0]:"O técnico")+" está vendo e controlando a sua tela";
+  const chat=E.chat||[];$("cChat").classList.toggle("hide",!ses&&!chat.length);
+  if(chat.length!==ultChat){ultChat=chat.length;$("msgs").innerHTML=chat.map(m=>`<div class="m ${m.tecnico?"ele":"eu"}"><small>${esc(m.tecnico?m.de:"Você")} · ${hora(m.quando)}</small>${esc(m.texto)}</div>`).join("")||'<p class="mut">Nenhuma mensagem.</p>';$("msgs").scrollTop=1e6}
+  $("cAjuda").classList.toggle("hide",!!ses);
+  if(E.ajuda&&E.ajuda.protocolo&&E.ajuda.protocolo!==ajudaDispensada){$("ajudaOk").classList.remove("hide");$("ajudaForm").classList.add("hide");
+    $("ajudaOk").innerHTML=`✔ Pedido <b>${esc(E.ajuda.protocolo)}</b> enviado às ${hora(E.ajuda.quando)}. Um técnico vai atender em breve.`+(E.ajuda.link?` <a href="${esc(E.ajuda.link)}" target="_blank" rel="noopener">Acompanhar</a>`:"")+` <a href="#" onclick="novoPedido();return false">Novo pedido</a>`}
+  else if(E.ajuda&&E.ajuda.erro){$("aMsg").textContent="Não foi possível enviar: "+E.ajuda.erro;$("bAjuda").disabled=false}
+  $("bRevogar").classList.toggle("hide",s.continuo!=="ativo");
+  const inst=d.instalacao;$("bInstalar").classList.toggle("hide",!inst.pode);$("bInstalar").disabled=inst.andamento;
+  $("bInstalar").textContent=inst.andamento?"Instalando… confirme a janela do Windows":"Instalar para acesso permanente";
+  $("rodape").textContent=(inst.feito?"Instalado ✔ · ":E.portatil?"Sem instalar · ":"")+(inst.erro?"Falha na instalação: "+inst.erro+" · ":"")+"versão "+(E.versao||"")}
+async function pedido(tipo,dados){try{await chama("/pedido",{tipo,...(dados||{})});return true}catch(e){alert("Erro: "+e.message);return false}}
+async function enviarChat(){const t=$("chatTxt").value.trim();if(!t)return;$("chatTxt").value="";await pedido("chat",{texto:t});setTimeout(atualizar,1500)}
+async function pedirAjuda(){const p=$("aProb").value.trim();if(p.length<5)return $("aMsg").textContent="Descreva o problema.";
+  $("bAjuda").disabled=true;$("aMsg").textContent="Enviando…";
+  if(await pedido("ajuda",{nome:$("aNome").value,telefone:$("aTel").value,problema:p})){$("aMsg").textContent="Enviando… (alguns segundos)"}else $("bAjuda").disabled=false}
+function novoPedido(){$("ajudaOk").classList.add("hide");$("ajudaForm").classList.remove("hide");$("aProb").value="";$("aMsg").textContent="";$("bAjuda").disabled=false;if(E&&E.ajuda)ajudaDispensada=E.ajuda.protocolo}
+function revogar(){if(confirm("Cancelar o acesso contínuo? Depois disso, cada atendimento precisará da sua autorização."))pedido("revogar")}
+async function instalar(){if(!confirm("Instalar no computador? O Windows vai pedir permissão de administrador.\nO seu número de acesso continua o mesmo."))return;await chama("/instalar",{});atualizar()}
+function copiar(){navigator.clipboard.writeText($("numero").textContent.replace(/\s/g,"")).then(()=>{$("bCopiar").textContent="Copiado ✔";setTimeout(()=>$("bCopiar").textContent="Copiar número",1500)})}
+try{const ls=JSON.parse(localStorage.hmAjuda||"{}");$("aNome").value=ls.n||"";$("aTel").value=ls.t||""}catch(e){}
+["aNome","aTel"].forEach(i=>$(i).addEventListener("change",()=>{try{localStorage.hmAjuda=JSON.stringify({n:$("aNome").value,t:$("aTel").value})}catch(e){}}));
+atualizar();setInterval(atualizar,1500);
+</script>
+</body>
+</html>
