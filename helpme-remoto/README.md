@@ -47,7 +47,18 @@ Sistema de suporte remoto no estilo AnyDesk, sem mensalidade e sem depender de R
   - tela dividida A/B;
   - tipos de problema e marca configurável.
 
-## Instalação no VPS
+## Instalação no VPS – jeito fácil (um comando)
+1. No painel da Hostinger (DNS de fninfohouse.com.br), crie dois registros **A**, `suporte` e `os`, com o IP do VPS.
+2. Envie o `helpme-remoto.zip` para o VPS (no terminal do navegador da Hostinger, botão de upload, ou por WinSCP).
+3. No terminal do VPS:
+   ```bash
+   apt install -y unzip && unzip -o helpme-remoto.zip -d /root/ && cd /root/helpme-remoto/deploy
+   bash instalar-vps.sh suporte.fninfohouse.com.br os.fninfohouse.com.br SEU-EMAIL
+   ```
+   O script instala tudo (Docker, Nginx, HTTPS), compila o HelpMe.exe, liga a integração com o gestor e mostra
+   no final as senhas e os endereços. Para atualizar depois, envie o zip novo e rode o mesmo comando.
+
+## Instalação no VPS – passo a passo manual
 1. No DNS (Registro.br/Hostinger), crie os registros **A** `suporte` e `os` apontando para o IP do VPS.
 2. No firewall do VPS, libere apenas as portas 80 e 443. Diferente do RustDesk, não há mais portas 211xx.
 3. Envie a pasta `helpme-remoto` para o VPS e rode:
