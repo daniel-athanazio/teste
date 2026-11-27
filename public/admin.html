@@ -23,7 +23,16 @@
       <p class="mut">Pressione OK/Enter na TV para tela cheia. Para vídeos com som, use o endereço com <code>?som=1</code> no final (alguns navegadores bloqueiam).</p>
       <a class="btn sec" id="tvLink" target="_blank">Abrir prévia</a>
       <label>Tempo padrão de cada imagem (segundos)</label>
-      <div class="row"><input type="number" id="padrao" min="1"><button class="sec" id="salvarPadrao" style="flex:0 0 auto">Salvar</button></div>
+      <input type="number" id="padrao" min="1">
+      <label>Posição da TV</label>
+      <select id="orientacao">
+        <option value="horizontal">▭ Horizontal (deitada)</option>
+        <option value="vertical">▯ Vertical — gira a imagem para a direita</option>
+        <option value="vertical-esq">▯ Vertical — gira a imagem para a esquerda</option>
+      </select>
+      <p class="mut">TV pendurada em pé? Escolha “Vertical”. Se a imagem ficar de cabeça para baixo, use a outra opção.
+        Para uma TV específica, use o endereço com <code>?orientacao=vertical</code> (ou <code>horizontal</code>).</p>
+      <button class="sec" id="salvarPadrao">Salvar</button>
     </div>
     <div class="card qr">
       <h2>Gerenciar pelo celular</h2>
@@ -33,7 +42,8 @@
   </div>
 
   <div class="card">
-    <h2>Novo anúncio</h2>
+    <h2>Novo anúncio / post</h2>
+    <p class="mut">Escreva um texto ou escolha fotos e vídeos. Vai para a TV e, se marcar, é postado também no Facebook, no Instagram e no WhatsApp.</p>
     <div id="form"></div>
   </div>
 
@@ -52,6 +62,7 @@
           <li>Entre em <b>developers.facebook.com</b> → Meus apps → Criar app → tipo “Empresa”, e adicione o produto <b>Instagram</b> (“API com login do Instagram”).</li>
           <li>Em “Gerar tokens de acesso”, adicione sua conta do Instagram e clique em <b>Gerar token</b>.</li>
           <li>Copie o token e cole acima. O painel renova o token sozinho antes de ele vencer.</li>
+          <li>Para <b>postar</b> pelo painel, o token precisa da permissão <code>instagram_business_content_publish</code> e o painel precisa de um <b>endereço público</b> (abaixo), porque o Instagram baixa a foto pela internet.</li>
         </ol></details>
       </fieldset>
       <fieldset>
@@ -65,7 +76,7 @@
           <li>Funciona com <b>Páginas</b> do Facebook, não com perfis pessoais.</li>
           <li>O ID aparece na Página em Sobre → Transparência da Página, ou em Configurações.</li>
           <li>Em <b>developers.facebook.com</b>, crie um app do tipo “Empresa” e abra o <b>Explorador da Graph API</b>.</li>
-          <li>Escolha o app, clique em “Obter token” → “Token de acesso da Página”, marque <code>pages_read_engagement</code> e escolha a sua Página.</li>
+          <li>Escolha o app, clique em “Obter token” → “Token de acesso da Página”, marque <code>pages_read_engagement</code> (e <code>pages_manage_posts</code> para postar pelo painel) e escolha a sua Página.</li>
           <li>Para não vencer em 1 hora, troque-o por um token de longa duração no <b>Depurador de token de acesso</b> (“Estender token de acesso”).</li>
         </ol></details>
       </fieldset>
@@ -76,13 +87,44 @@
       <div><label>Segundos na tela</label><input type="number" id="socialDuracao" min="3"></div>
     </div>
     <label class="check" style="margin-top:12px"><input type="checkbox" id="mostrarLegenda"> Mostrar a legenda do post na TV</label>
+    <label>Endereço público do painel (opcional — necessário para postar no Instagram e para o WhatsApp)</label>
+    <input type="url" id="urlPublica" placeholder="Ex.: https://loja-painel.trycloudflare.com">
+    <details><summary>Como criar o endereço público</summary><ol>
+      <li>Instale o <b>cloudflared</b> (grátis): <code>winget install Cloudflare.cloudflared</code> no Windows.</li>
+      <li>Com o painel aberto, rode <code>cloudflared tunnel --url http://localhost:8080</code> e copie o endereço <code>https://….trycloudflare.com</code> que aparecer.</li>
+      <li>Cole acima e salve. Pela internet ficam visíveis <b>só</b> as fotos/vídeos dos anúncios e o recebimento do WhatsApp — o painel continua só na rede local.</li>
+      <li>O endereço rápido muda quando o cloudflared reinicia. Para um fixo, crie um túnel com nome na sua conta Cloudflare.</li>
+    </ol></details>
     <div class="acts" style="margin-top:12px">
       <button id="salvarSocial">Salvar</button>
       <button class="sec" id="sincronizar">Sincronizar agora</button>
     </div>
     <div class="msg" id="socialMsg"></div>
-    <p class="mut"><b>WhatsApp:</b> o WhatsApp não permite que outros programas leiam os Status. Para mostrar um Status na TV,
-      salve a foto ou o vídeo no celular e envie pelo QR code “Enviar pelo celular”.</p>
+  </div>
+
+  <div class="card">
+    <h2>WhatsApp</h2>
+    <p class="mut">Mande um texto, foto ou vídeo para o <b>número de WhatsApp da loja</b> e ele aparece na TV (a legenda vai junto).
+      Mande <b>APAGAR</b> para tirar da TV o último que você enviou. Usa a API oficial do WhatsApp Business e precisa do endereço público acima.</p>
+    <p class="mut">Os Status do WhatsApp não podem ser lidos por nenhum programa — para levar um Status para a TV, encaminhe a foto/vídeo para o número da loja.</p>
+    <label class="check"><input type="checkbox" id="waAtivo"> Receber anúncios pelo WhatsApp</label>
+    <label>Números autorizados a enviar (um por linha, com DDI e DDD)</label>
+    <textarea id="waAutorizados" rows="3" placeholder="5511999998888"></textarea>
+    <div class="row">
+      <div><label>Token de acesso <span class="mut" id="waTem"></span></label><input type="password" id="waToken" autocomplete="off" placeholder="Token do WhatsApp Business"></div>
+      <div><label>Chave secreta do app (opcional) <span class="mut" id="waSecretTem"></span></label><input type="password" id="waSecret" autocomplete="off"></div>
+    </div>
+    <p>Endereço do webhook: <code id="waWebhook">—</code><br>Token de verificação: <code id="waVerify"></code></p>
+    <details><summary>Como configurar</summary><ol>
+      <li>É preciso um número que <b>não</b> esteja em uso no app do WhatsApp do celular (pode ser um chip novo ou fixo). Ele vira o número do painel.</li>
+      <li>Em <b>developers.facebook.com</b> → Meus apps → Criar app → “Empresa”, adicione o produto <b>WhatsApp</b> e cadastre o número em “Configuração da API”.</li>
+      <li>Em WhatsApp → Configuração → <b>Webhook</b>, cole o endereço do webhook e o token de verificação mostrados acima, clique em Verificar e salvar e assine o campo <code>messages</code>.</li>
+      <li>Em Configurações do negócio → Usuários do sistema, crie um usuário, gere um token com <code>whatsapp_business_messaging</code> (sem validade) e cole acima.</li>
+      <li>(Opcional) Cole a “Chave secreta do app” (Configurações do app → Básico) para o painel recusar mensagens falsas.</li>
+      <li>Cadastre os números autorizados e salve. Mande “ajuda” para o número do painel para testar.</li>
+    </ol></details>
+    <div class="acts" style="margin-top:12px"><button id="salvarWa">Salvar</button></div>
+    <div class="msg" id="waMsg"></div>
   </div>
 
   <div class="card">
@@ -117,6 +159,7 @@
 <script src="form.js"></script>
 <script>
 var anuncios = [];
+var REDES = { instagram: 'Instagram', facebook: 'Facebook', whatsapp: 'WhatsApp' };
 var $ = function (id) { return document.getElementById(id); };
 
 function status(a) {
@@ -155,12 +198,15 @@ function render() {
     var s = status(a);
     el.querySelector('.st').textContent = s[0]; el.querySelector('.st').className = 'tag st ' + s[1];
     el.querySelector('.tp').textContent = { video: 'Vídeo', imagem: 'Imagem', texto: 'Texto' }[a.tipo];
-    if (a.origem) {
-      var tg = document.createElement(a.link ? 'a' : 'span');
-      tg.className = 'tag ' + a.origem; tg.textContent = a.origem === 'instagram' ? 'Instagram' : 'Facebook';
-      if (a.link) { tg.href = a.link; tg.target = '_blank'; tg.rel = 'noopener'; }
+    var tags = [];
+    if (a.origem) tags.push([a.origem, (REDES[a.origem] || a.origem) + (a.origem === 'whatsapp' && a.remetente ? ' ' + a.remetente : ''), a.link]);
+    Object.keys(a.postado || {}).forEach(function (r) { tags.push([r, 'Postado no ' + REDES[r], a.postado[r].link]); });
+    tags.reverse().forEach(function (t) {
+      var tg = document.createElement(t[2] ? 'a' : 'span');
+      tg.className = 'tag ' + t[0]; tg.textContent = t[1];
+      if (t[2]) { tg.href = t[2]; tg.target = '_blank'; tg.rel = 'noopener'; }
       el.querySelector('.tp').after(tg);
-    }
+    });
     el.querySelectorAll('[data-f]').forEach(function (inp) { inp.value = a[inp.dataset.f] || ''; });
     el.querySelector('.alternar').textContent = a.ativo ? 'Pausar' : 'Ativar';
 
@@ -197,11 +243,13 @@ api('GET', '/api/info').then(function (i) {
   $('uploadUrl').href = $('uploadUrl').textContent = i.uploadUrl;
   $('tvUrl').textContent = i.tvUrl; $('tvLink').href = '/tv';
   $('padrao').value = i.defaultImageSeconds;
+  $('orientacao').value = i.orientacao || 'horizontal';
   if (!TOKEN) TOKEN = i.token;
 }).catch(alerta);
 
 $('salvarPadrao').onclick = function () {
-  api('PUT', '/api/config', { defaultImageSeconds: $('padrao').value }).then(function () { alert('Salvo!'); }).catch(alerta);
+  api('PUT', '/api/config', { defaultImageSeconds: $('padrao').value, orientacao: $('orientacao').value })
+    .then(function () { alert('Salvo! A TV muda de posição em até 20 segundos.'); }).catch(alerta);
 };
 
 // ----- redes sociais -----
@@ -212,6 +260,7 @@ function mostrarSocial(s) {
   $('fbPage').value = s.facebook.pageId || '';
   $('quantidade').value = s.quantidade; $('diasExibir').value = s.diasExibir;
   $('socialDuracao').value = s.duracao; $('mostrarLegenda').checked = s.mostrarLegenda;
+  $('urlPublica').value = s.urlPublica || '';
   $('intervalo').textContent = s.intervaloMin;
   var m = $('socialMsg'), erros = Object.keys(s.erros || {});
   if (s.sincronizando) { m.textContent = 'Sincronizando…'; m.className = 'msg'; }
@@ -229,11 +278,14 @@ function dadosSocial() {
     facebook: { ativo: $('fbAtivo').checked, pageId: $('fbPage').value, token: $('fbToken').value },
     quantidade: $('quantidade').value, diasExibir: $('diasExibir').value,
     duracao: $('socialDuracao').value, mostrarLegenda: $('mostrarLegenda').checked,
+    urlPublica: $('urlPublica').value,
   };
 }
 $('salvarSocial').onclick = function () {
   api('PUT', '/api/social', dadosSocial()).then(function (s) {
-    $('igToken').value = ''; $('fbToken').value = ''; mostrarSocial(s); alert('Salvo!');
+    $('igToken').value = ''; $('fbToken').value = ''; mostrarSocial(s); carregarWa(); setupForm($('form'), carregar);
+    if ($('urlPublica').value && !s.urlPublica) alert('Salvo, mas o endereço público precisa começar com https:// e não ter nada depois do domínio.');
+    else alert('Salvo!');
   }).catch(alerta);
 };
 $('sincronizar').onclick = function () {
@@ -243,6 +295,26 @@ $('sincronizar').onclick = function () {
     .then(function (s) { mostrarSocial(s); carregar(); }).catch(alerta);
 };
 api('GET', '/api/social').then(mostrarSocial).catch(alerta);
+
+// ----- WhatsApp -----
+function mostrarWa(w) {
+  $('waAtivo').checked = w.ativo; $('waAutorizados').value = w.autorizados;
+  $('waTem').textContent = w.temToken ? '(já configurado)' : '';
+  $('waSecretTem').textContent = w.temSecret ? '(já configurada)' : '';
+  $('waVerify').textContent = w.verifyToken;
+  $('waWebhook').textContent = w.webhook || 'preencha o endereço público em Redes sociais';
+  var m = $('waMsg');
+  if (w.erro) { m.textContent = 'Último erro: ' + w.erro; m.className = 'msg err'; }
+  else if (w.ultima) { m.textContent = 'Último anúncio recebido: ' + new Date(w.ultima).toLocaleString('pt-BR'); m.className = 'msg ok'; }
+  else m.textContent = '';
+}
+function carregarWa() { return api('GET', '/api/whatsapp').then(mostrarWa).catch(alerta); }
+$('salvarWa').onclick = function () {
+  api('PUT', '/api/whatsapp', {
+    ativo: $('waAtivo').checked, autorizados: $('waAutorizados').value, token: $('waToken').value, appSecret: $('waSecret').value,
+  }).then(function (w) { $('waToken').value = ''; $('waSecret').value = ''; mostrarWa(w); alert('Salvo!'); }).catch(alerta);
+};
+carregarWa();
 
 setupForm($('form'), carregar);
 carregar();

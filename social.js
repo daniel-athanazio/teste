@@ -9,12 +9,13 @@ const { pipeline } = require('stream/promises');
 // Podem ser trocados por variáveis de ambiente (útil para testes)
 const IG_API = process.env.IG_API || 'https://graph.instagram.com';
 const FB_API = process.env.FB_API || 'https://graph.facebook.com/v21.0';
+const FB_VIDEO_API = process.env.FB_VIDEO_API || 'https://graph-video.facebook.com/v21.0';
 const INTERVALO_MIN = Number(process.env.SOCIAL_INTERVAL_MIN) || 10;
 const DIA = 24 * 3600 * 1000;
 // mesmo formato do campo datetime-local do painel (horário do computador)
 const dataLocal = d => new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
 
-module.exports = function createSocial({ config, saveConfig, MEDIA_DIR, hasExternal, addAd }) {
+module.exports = function createSocial({ config, saveConfig, MEDIA_DIR, hasExternal, jaPostado, addAd }) {
   const defaults = {
     instagram: { ativo: false, token: '' },
     facebook: { ativo: false, pageId: '', token: '' },
@@ -22,6 +23,7 @@ module.exports = function createSocial({ config, saveConfig, MEDIA_DIR, hasExter
     diasExibir: 7,       // por quantos dias o post fica no ar (0 = sem fim)
     duracao: 10,         // segundos na tela
     mostrarLegenda: true,
+    urlPublica: '',      // endereço https público deste painel (túnel), exigido para publicar no Instagram
     importados: [],      // ids já importados (não importa de novo, mesmo se excluído)
   };
   config.social = Object.assign({}, defaults, config.social);
@@ -36,6 +38,7 @@ module.exports = function createSocial({ config, saveConfig, MEDIA_DIR, hasExter
     return {
       instagram: { ativo: c.instagram.ativo, temToken: !!c.instagram.token },
       facebook: { ativo: c.facebook.ativo, pageId: c.facebook.pageId, temToken: !!c.facebook.token },
+      urlPublica: c.urlPublica,
       quantidade: c.quantidade, diasExibir: c.diasExibir, duracao: c.duracao, mostrarLegenda: c.mostrarLegenda,
       intervaloMin: INTERVALO_MIN,
       ...estado,
@@ -56,6 +59,10 @@ module.exports = function createSocial({ config, saveConfig, MEDIA_DIR, hasExter
       if (b.facebook.token) c.facebook.token = String(b.facebook.token).trim();
       if (b.facebook.removerToken) c.facebook.token = '';
     }
+    if (b.urlPublica !== undefined) {
+      const u = String(b.urlPublica).trim().replace(/\/+$/, '');
+      c.urlPublica = /^https:\/\/[^\s/]+$/i.test(u) ? u : '';
+    }
     if (b.quantidade !== undefined) c.quantidade = num(b.quantidade, 1, 25, 5);
     if (b.diasExibir !== undefined) c.diasExibir = num(b.diasExibir, 0, 365, 7);
     if (b.duracao !== undefined) c.duracao = num(b.duracao, 3, 600, 10);
@@ -63,8 +70,8 @@ module.exports = function createSocial({ config, saveConfig, MEDIA_DIR, hasExter
     saveConfig();
   }
 
-  async function getJson(url) {
-    const r = await fetch(url);
+  async function getJson(url, opts) {
+    const r = await fetch(url, opts);
     const j = await r.json().catch(() => ({}));
     if (!r.ok || j.error) throw new Error((j.error && j.error.message) || `HTTP ${r.status}`);
     return j;
@@ -84,6 +91,7 @@ module.exports = function createSocial({ config, saveConfig, MEDIA_DIR, hasExter
   async function importar(post) {
     const c = cfg();
     if (c.importados.includes(post.externalId) || hasExternal(post.externalId)) return false;
+    if (jaPostado(post.origem, post.legenda)) { marcar(post.externalId); return false; } // foi publicado por este painel
     const base = new Date(post.data || Date.now());
     const ad = {
       id: crypto.randomUUID(),
@@ -191,5 +199,81 @@ module.exports = function createSocial({ config, saveConfig, MEDIA_DIR, hasExter
     setInterval(sync, INTERVALO_MIN * 60 * 1000);
   }
 
-  return { config: cfg, publicState, update, sync, start };
+  // ----- publicar (painel -> redes) -----
+  const postJson = (url, params) => getJson(url, { method: 'POST', body: new URLSearchParams(params) });
+
+  async function arquivoBlob(caminho) {
+    return fs.openAsBlob ? fs.openAsBlob(caminho) : new Blob([fs.readFileSync(caminho)]);
+  }
+
+  // Quais redes estão prontas para receber publicações
+  function podePublicar() {
+    const c = cfg();
+    return {
+      facebook: !!(c.facebook.token && c.facebook.pageId),
+      instagram: !!c.instagram.token,
+      instagramPrecisaUrl: !c.urlPublica,
+    };
+  }
+
+  async function publicarFacebook({ tipo, texto, arquivo }) {
+    const c = cfg().facebook;
+    if (!c.token || !c.pageId) throw new Error('Facebook não configurado');
+    const page = encodeURIComponent(c.pageId);
+    let r, postId;
+    if (tipo === 'texto' || !arquivo) {
+      r = await postJson(`${FB_API}/${page}/feed`, { message: texto, access_token: c.token });
+      postId = r.id;
+    } else {
+      const fd = new FormData();
+      fd.append('access_token', c.token);
+      fd.append(tipo === 'video' ? 'description' : 'message', texto || '');
+      fd.append('source', await arquivoBlob(arquivo), path.basename(arquivo));
+      r = await getJson(tipo === 'video' ? `${FB_VIDEO_API}/${page}/videos` : `${FB_API}/${page}/photos`, { method: 'POST', body: fd });
+      postId = r.post_id || r.id;
+    }
+    if (postId) marcar('fb:' + postId);
+    return { id: postId, link: postId ? 'https://www.facebook.com/' + postId : null };
+  }
+
+  async function publicarInstagram({ tipo, texto, urlMidia }) {
+    const c = cfg().instagram;
+    if (!c.token) throw new Error('Instagram não configurado');
+    if (!urlMidia) throw new Error('o Instagram exige um endereço público (veja “Endereço público” em Redes sociais)');
+    const tk = c.token;
+    const me = await getJson(`${IG_API}/me?fields=user_id,username&access_token=${encodeURIComponent(tk)}`);
+    const igId = me.user_id || me.id;
+    const params = { caption: texto || '', access_token: tk };
+    if (tipo === 'video') { params.media_type = 'REELS'; params.video_url = urlMidia; } else params.image_url = urlMidia;
+    const cont = await postJson(`${IG_API}/${igId}/media`, params);
+    // o Instagram baixa e processa a mídia; vídeos podem levar alguns minutos
+    for (let i = 0; i < 60; i++) {
+      const st = await getJson(`${IG_API}/${cont.id}?fields=status_code&access_token=${encodeURIComponent(tk)}`);
+      if (st.status_code === 'FINISHED' || !st.status_code) break;
+      if (st.status_code === 'ERROR' || st.status_code === 'EXPIRED') throw new Error('o Instagram não conseguiu processar a mídia (use JPG ou MP4)');
+      await new Promise(ok => setTimeout(ok, Number(process.env.IG_POLL_MS) || 5000));
+    }
+    const pub = await postJson(`${IG_API}/${igId}/media_publish`, { creation_id: cont.id, access_token: tk });
+    if (pub.id) marcar('ig:' + pub.id);
+    return { id: pub.id, link: me.username ? 'https://www.instagram.com/' + me.username + '/' : null };
+  }
+
+  // redes: ['facebook','instagram']; arquivo: caminho local; nomeMidia: arquivo em /media para o Instagram baixar
+  async function publicar({ redes, tipo, texto, arquivo, nomeMidia }) {
+    const res = {};
+    const urlMidia = cfg().urlPublica && nomeMidia ? `${cfg().urlPublica}/media/${encodeURIComponent(nomeMidia)}` : null;
+    for (const rede of redes) {
+      try {
+        res[rede] = { ok: true, ...(rede === 'facebook'
+          ? await publicarFacebook({ tipo, texto, arquivo })
+          : await publicarInstagram({ tipo, texto, urlMidia })) };
+      } catch (e) {
+        res[rede] = { ok: false, erro: e.message };
+        console.error(`[publicar ${rede}]`, e.message);
+      }
+    }
+    return res;
+  }
+
+  return { config: cfg, publicState, update, sync, start, publicar, podePublicar };
 };

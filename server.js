@@ -53,7 +53,10 @@ function lanIp() {
 }
 const baseUrl = () => `http://${lanIp()}:${PORT}`;
 
+// Requisição que chegou pelo túnel público (cloudflared, ngrok…): nunca é tratada como local
+const viaTunel = req => !!(req.headers['cf-connecting-ip'] || req.headers['x-forwarded-for'] || req.headers.forwarded);
 function isLocal(req) {
+  if (viaTunel(req)) return false;
   const ip = req.socket.remoteAddress || '';
   return ip === '127.0.0.1' || ip === '::1' || ip === '::ffff:127.0.0.1';
 }
@@ -72,6 +75,8 @@ function isActive(ad, now = Date.now()) {
 }
 
 const COR = /^#[0-9a-fA-F]{6}$/;
+const ORIENTACOES = ['horizontal', 'vertical', 'vertical-esq'];
+if (!ORIENTACOES.includes(config.orientacao)) config.orientacao = 'horizontal';
 
 function sanitizeFields(body, ad) {
   if (body.titulo !== undefined) ad.titulo = String(body.titulo).slice(0, 120);
@@ -111,7 +116,12 @@ const upload = multer({
 
 // ---------- app ----------
 const app = express();
-app.use(express.json());
+// Pelo túnel público só ficam acessíveis as mídias (para o Instagram baixar) e o webhook do WhatsApp
+app.use((req, res, next) => {
+  if (!viaTunel(req) || req.path.startsWith('/media/') || req.path === '/webhook/whatsapp') return next();
+  res.status(404).send('Não encontrado');
+});
+app.use(express.json({ limit: '8mb', verify: (req, res, buf) => { req.rawBody = buf; } }));
 app.use(express.static(path.join(__dirname, 'public')));
 app.use('/media', express.static(MEDIA_DIR, { maxAge: '7d' }));
 
@@ -129,6 +139,7 @@ app.get('/api/info', requireToken, async (req, res) => {
     uploadUrl, tvUrl, adminUrl,
     token: config.token,
     defaultImageSeconds: config.defaultImageSeconds,
+    orientacao: config.orientacao,
     qrUpload: await QRCode.toDataURL(uploadUrl, { margin: 1, width: 320 }),
     qrAdmin: await QRCode.toDataURL(adminUrl, { margin: 1, width: 320 }),
   });
@@ -137,8 +148,9 @@ app.get('/api/info', requireToken, async (req, res) => {
 app.put('/api/config', requireToken, (req, res) => {
   const d = Number(req.body.defaultImageSeconds);
   if (Number.isFinite(d) && d > 0) config.defaultImageSeconds = Math.min(d, 3600);
+  if (ORIENTACOES.includes(req.body.orientacao)) config.orientacao = req.body.orientacao;
   writeJson(CONFIG_FILE, config);
-  res.json({ ok: true, defaultImageSeconds: config.defaultImageSeconds });
+  res.json({ ok: true, defaultImageSeconds: config.defaultImageSeconds, orientacao: config.orientacao });
 });
 
 // Lista completa (painel)
@@ -153,6 +165,7 @@ app.get('/api/playlist', (req, res) => {
   res.set('Cache-Control', 'no-store');
   res.json({
     geradoEm: now,
+    orientacao: config.orientacao,
     itens: ads.filter(a => isActive(a, now)).map(a => ({
       id: a.id,
       tipo: a.tipo,
@@ -166,7 +179,13 @@ app.get('/api/playlist', (req, res) => {
   });
 });
 
-app.post('/api/anuncios', requireToken, upload.array('arquivos', 50), (req, res) => {
+// redes escolhidas no formulário ("facebook,instagram")
+function redesPedidas(body) {
+  const v = Array.isArray(body.publicar) ? body.publicar.join(',') : String(body.publicar || '');
+  return v.split(',').map(x => x.trim()).filter(x => x === 'facebook' || x === 'instagram');
+}
+
+app.post('/api/anuncios', requireToken, upload.array('arquivos', 50), async (req, res) => {
   if (!req.files || !req.files.length) {
     return res.status(400).json({ erro: 'Nenhum arquivo de imagem ou vídeo válido foi recebido.' });
   }
@@ -184,18 +203,44 @@ app.post('/api/anuncios', requireToken, upload.array('arquivos', 50), (req, res)
       ativo: true,
       criadoEm: Date.now(),
     });
-    if (!ad.titulo) ad.titulo = f.originalname;
+    if (!ad.titulo) ad.titulo = (ad.legenda || '').split('\n')[0].slice(0, 60) || f.originalname;
     if (req.body.ativo === undefined) ad.ativo = true;
     ad.atualizadoEm = Date.now();
     ads.push(ad);
     return ad;
   });
   saveAds();
-  res.json({ ok: true, criados: created.length });
+  // publica nas redes só o primeiro arquivo (um post por envio)
+  const redes = redesPedidas(req.body);
+  let publicado = {};
+  if (redes.length) {
+    const ad = created[0];
+    publicado = await social.publicar({
+      redes, tipo: ad.tipo, texto: ad.legenda || '', arquivo: path.join(MEDIA_DIR, ad.arquivo), nomeMidia: ad.arquivo,
+    });
+    marcarPostado(ad, publicado);
+  }
+  res.json({ ok: true, criados: created.length, publicado });
 });
 
+function marcarPostado(ad, publicado) {
+  for (const [rede, r] of Object.entries(publicado)) {
+    if (r.ok) (ad.postado = ad.postado || {})[rede] = { id: r.id, link: r.link, em: Date.now() };
+  }
+  saveAds();
+}
+
+// Imagem gerada no navegador (texto -> JPG) para o Instagram, que não aceita post só de texto
+function salvarImagemBase64(dataUrl) {
+  const m = /^data:image\/jpeg;base64,([A-Za-z0-9+/=]+)$/.exec(String(dataUrl || ''));
+  if (!m) return null;
+  const nome = Date.now() + '-' + crypto.randomBytes(4).toString('hex') + '-post.jpg';
+  fs.writeFileSync(path.join(MEDIA_DIR, nome), Buffer.from(m[1], 'base64'));
+  return nome;
+}
+
 // Anúncio só de texto
-app.post('/api/anuncios/texto', requireToken, (req, res) => {
+app.post('/api/anuncios/texto', requireToken, async (req, res) => {
   const ad = sanitizeFields(req.body, {
     id: crypto.randomUUID(), titulo: '', tipo: 'texto', texto: '',
     corFundo: '#1e3a8a', corTexto: '#ffffff', tamanho: 'M',
@@ -207,7 +252,21 @@ app.post('/api/anuncios/texto', requireToken, (req, res) => {
   ad.atualizadoEm = Date.now();
   ads.push(ad);
   saveAds();
-  res.json({ ok: true, criados: 1 });
+  const redes = redesPedidas(req.body);
+  let publicado = {};
+  if (redes.length) {
+    const img = redes.includes('instagram') ? salvarImagemBase64(req.body.imagemPost) : null;
+    if (img) ad.imagemPost = img;
+    publicado = Object.assign(
+      redes.includes('facebook') ? await social.publicar({ redes: ['facebook'], tipo: 'texto', texto: ad.texto }) : {},
+      redes.includes('instagram') ? await social.publicar({
+        redes: ['instagram'], tipo: 'imagem', texto: ad.texto,
+        nomeMidia: img, arquivo: img && path.join(MEDIA_DIR, img),
+      }) : {},
+    );
+    marcarPostado(ad, publicado);
+  }
+  res.json({ ok: true, criados: 1, publicado });
 });
 
 app.put('/api/anuncios/:id', requireToken, (req, res) => {
@@ -233,14 +292,23 @@ app.delete('/api/anuncios/:id', requireToken, (req, res) => {
   if (i < 0) return res.status(404).json({ erro: 'Anúncio não encontrado' });
   const [ad] = ads.splice(i, 1);
   saveAds();
-  if (ad.arquivo) fs.unlink(path.join(MEDIA_DIR, ad.arquivo), () => {});
+  apagarArquivos(ad);
   res.json({ ok: true });
 });
+
+function apagarArquivos(ad) {
+  for (const f of [ad.arquivo, ad.imagemPost]) if (f) fs.unlink(path.join(MEDIA_DIR, f), () => {});
+}
 
 // ---------- redes sociais ----------
 const social = require('./social')({
   config, saveConfig: () => writeJson(CONFIG_FILE, config), MEDIA_DIR,
   hasExternal: id => ads.some(a => a.externalId === id),
+  // post importado que foi publicado por este painel (mesmo texto): não duplica na TV
+  jaPostado: (rede, texto) => {
+    const t = String(texto || '').trim();
+    return !!t && ads.some(a => a.postado && a.postado[rede] && String(a.texto || a.legenda || '').trim() === t);
+  },
   addAd: ad => { ads.push(ad); saveAds(); },
 });
 
@@ -250,6 +318,23 @@ app.post('/api/social/sincronizar', requireToken, async (req, res) => {
   await social.sync();
   res.json(social.publicState());
 });
+// Opções do formulário: em quais redes dá para publicar, e a orientação da TV (para a prévia)
+app.get('/api/publicar/opcoes', requireToken, (req, res) => res.json({ ...social.podePublicar(), orientacao: config.orientacao }));
+
+// ---------- WhatsApp ----------
+const whatsapp = require('./whatsapp')({
+  config, saveConfig: () => writeJson(CONFIG_FILE, config), MEDIA_DIR,
+  socialCfg: social.config, ads: () => ads,
+  addAd: ad => { ads.push(ad); saveAds(); },
+  removeAd: id => {
+    const i = ads.findIndex(a => a.id === id);
+    if (i >= 0) { apagarArquivos(ads[i]); ads.splice(i, 1); saveAds(); }
+  },
+});
+app.get('/webhook/whatsapp', whatsapp.verificar);
+app.post('/webhook/whatsapp', whatsapp.receber);
+app.get('/api/whatsapp', requireToken, (req, res) => res.json(whatsapp.publicState()));
+app.put('/api/whatsapp', requireToken, (req, res) => { whatsapp.update(req.body || {}); res.json(whatsapp.publicState()); });
 
 app.use((err, req, res, next) => {
   console.error(err);
