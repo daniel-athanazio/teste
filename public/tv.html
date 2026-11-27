@@ -6,6 +6,9 @@
 <title>Painel de Anúncios — TV</title>
 <style>
   html, body { margin: 0; padding: 0; width: 100%; height: 100%; background: #000; overflow: hidden; cursor: none; }
+  /* #tela é girada quando a TV está na vertical; 1em = 1% da largura da tela (definido no script) */
+  #tela { position: absolute; top: 0; left: 0; width: 100%; height: 100%; overflow: hidden; background: #000;
+          -webkit-transform-origin: 0 0; transform-origin: 0 0; font-size: 1vw; }
   .layer { position: absolute; top: 0; left: 0; width: 100%; height: 100%; opacity: 0;
            -webkit-transition: opacity .8s; transition: opacity .8s; background: #000; }
   .layer.show { opacity: 1; }
@@ -13,26 +16,28 @@
   #vazio { position: absolute; top: 0; left: 0; width: 100%; height: 100%; display: none; color: #888;
            font-family: Arial, Helvetica, sans-serif; text-align: center; }
   #vazio .box { position: absolute; top: 50%; left: 0; width: 100%; -webkit-transform: translateY(-50%); transform: translateY(-50%); }
-  #relogio { font-size: 12vw; color: #ddd; }
-  #msg { font-size: 2.4vw; margin-top: 2vw; }
+  #relogio { font-size: 12em; color: #ddd; }
+  #msg { font-size: 2.4em; margin-top: .833em; }
   .texto { display: table; width: 100%; height: 100%; }
-  .texto div { display: table-cell; vertical-align: middle; text-align: center; padding: 4vw 6vw;
+  .texto div { display: table-cell; vertical-align: middle; text-align: center;
                white-space: pre-line; font-family: Arial, Helvetica, sans-serif; font-weight: bold; line-height: 1.25; }
-  .legenda { position: absolute; left: 0; right: 0; bottom: 0; padding: 6vw 4vw 2.5vw; color: #fff;
-             font: 2.4vw/1.35 Arial, Helvetica, sans-serif; text-shadow: 0 1px 3px #000;
+  .legenda { position: absolute; left: 0; right: 0; bottom: 0; padding: 2.5em 1.667em 1.042em; color: #fff;
+             font: 2.4em/1.35 Arial, Helvetica, sans-serif; text-shadow: 0 1px 3px #000;
              background: -webkit-linear-gradient(top, rgba(0,0,0,0), rgba(0,0,0,.85));
              background: linear-gradient(to bottom, rgba(0,0,0,0), rgba(0,0,0,.85)); }
-  .legenda .rede { display: table; font-weight: bold; font-size: 1.8vw; padding: .3vw 1vw; border-radius: 99px; margin-bottom: .8vw; }
-  .rede.instagram { background: #c13584; } .rede.facebook { background: #1877f2; }
-  #dica { position: absolute; bottom: 2vw; left: 0; width: 100%; text-align: center; color: #666;
-          font: 1.6vw Arial, sans-serif; display: none; }
+  .legenda .rede { display: table; font-weight: bold; font-size: .75em; padding: .167em .556em; border-radius: 99px; margin-bottom: .444em; }
+  .rede.instagram { background: #c13584; } .rede.facebook { background: #1877f2; } .rede.whatsapp { background: #25d366; }
+  #dica { position: absolute; bottom: 1.25em; left: 0; width: 100%; text-align: center; color: #666;
+          font: 1.6em Arial, sans-serif; display: none; }
 </style>
 </head>
 <body>
+<div id="tela">
 <div id="a" class="layer"></div>
 <div id="b" class="layer"></div>
 <div id="vazio"><div class="box"><div id="relogio"></div><div id="msg">Nenhum anúncio programado para agora</div></div></div>
 <div id="dica">Pressione OK / Enter para tela cheia</div>
+</div>
 
 <script>
 // Código em ES5 de propósito: funciona em navegadores antigos de Smart TV e TV Box.
@@ -44,6 +49,28 @@
 
   var playlist = [], idx = -1, timer = null, layers = [document.getElementById('a'), document.getElementById('b')], cur = 0;
   var vazio = document.getElementById('vazio');
+  var REDES = { instagram: 'Instagram', facebook: 'Facebook', whatsapp: 'WhatsApp' };
+
+  // ----- orientação: horizontal, vertical (gira 90° p/ direita) ou vertical-esq (gira 90° p/ esquerda) -----
+  // ?orientacao=... no endereço vale só para esta TV e tem prioridade sobre o painel
+  var tela = document.getElementById('tela'), orientacao = params.orientacao || 'horizontal', unidade = 0;
+  function transformar(v) { tela.style.webkitTransform = v; tela.style.transform = v; }
+  function aplicarOrientacao() {
+    var W = window.innerWidth || document.documentElement.clientWidth;
+    var H = window.innerHeight || document.documentElement.clientHeight;
+    if (orientacao === 'vertical' || orientacao === 'vertical-esq') {
+      tela.style.width = H + 'px'; tela.style.height = W + 'px';
+      transformar(orientacao === 'vertical' ? 'translate(' + W + 'px,0) rotate(90deg)' : 'translate(0,' + H + 'px) rotate(-90deg)');
+      unidade = H / 100;
+    } else {
+      tela.style.width = W + 'px'; tela.style.height = H + 'px';
+      transformar('none');
+      unidade = W / 100;
+    }
+    tela.style.fontSize = unidade + 'px';
+  }
+  window.addEventListener('resize', aplicarOrientacao);
+  aplicarOrientacao();
 
   function get(url, ok, fail) {
     var x = new XMLHttpRequest();
@@ -64,6 +91,10 @@
 
   function carregar(primeira) {
     get('/api/playlist', function (d) {
+      if (!params.orientacao && d.orientacao && d.orientacao !== orientacao) {
+        orientacao = d.orientacao; aplicarOrientacao();
+        if (playlist.length && !primeira) { primeira = true; idx = Math.max(-1, idx - 1); } // redesenha o anúncio atual
+      }
       var nova = d.itens || [];
       var mudou = !sameList(nova, playlist);
       playlist = nova;
@@ -107,7 +138,7 @@
       var leg = document.createElement('div'); leg.className = 'legenda';
       if (item.origem) {
         var r = document.createElement('div'); r.className = 'rede ' + item.origem;
-        r.appendChild(document.createTextNode(item.origem === 'instagram' ? 'Instagram' : 'Facebook'));
+        r.appendChild(document.createTextNode(REDES[item.origem] || item.origem));
         leg.appendChild(r);
       }
       if (item.legenda) {
@@ -122,12 +153,13 @@
       var tx = document.createElement('div');
       tx.style.color = item.corTexto || '#fff';
       var tam = { P: 4, M: 6, G: 9 }[item.tamanho] || 6;
-      tx.style.fontSize = tam + 'vw';
+      tx.style.fontSize = tam + 'em';
+      tx.style.padding = (4 * unidade) + 'px ' + (6 * unidade) + 'px';
       tx.appendChild(document.createTextNode(item.texto || ''));
       box.appendChild(tx); el.appendChild(box);
       if (leg) el.appendChild(leg);
       // diminui a fonte até o texto caber na tela
-      while (tam > 2 && box.scrollHeight > el.clientHeight + 2) { tam -= 0.5; tx.style.fontSize = tam + 'vw'; }
+      while (tam > 2 && box.scrollHeight > el.clientHeight + 2) { tam -= 0.5; tx.style.fontSize = tam + 'em'; }
       trocar(); agendar(item.duracao || 10);
       return;
     }
