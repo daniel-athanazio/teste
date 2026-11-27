@@ -1,0 +1,7 @@
+{% extends "_base.html" %}{% block titulo %}Valores — {{ loja }}{% endblock %}{% block conteudo %}
+<div class="mini"><div class="card"><h1>Valores (R$)</h1>
+{% if definida %}<p class="mut">Os valores ficam ocultos para a equipe. Digite a senha master para ver por 8 horas neste navegador.</p>
+<form method="post"><input type="password" name="senha" placeholder="Senha master" autofocus required autocomplete="off"><button>Mostrar valores</button></form>
+{% else %}<p>A senha master ainda não foi definida. Abra a aba <a href="/config">Configuração</a> e preencha "Senha master".</p>{% endif %}
+{% if erro %}<p class="al">{{ erro }}</p>{% endif %}<p style="margin-bottom:0"><a href="/painel">Voltar ao painel</a></p></div></div>
+{% endblock %}

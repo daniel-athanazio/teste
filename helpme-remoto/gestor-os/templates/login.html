@@ -1,0 +1,5 @@
+{% extends "_base.html" %}{% block conteudo %}
+<div class="mini"><div class="card"><h1>{{ loja }} — Gestor de OS</h1>
+<form method="post"><input type="password" name="senha" placeholder="Senha do painel" autofocus required>
+<button>Entrar</button></form>{% if erro %}<p class="al">{{ erro }}</p>{% endif %}</div></div>
+{% endblock %}

@@ -1,0 +1,81 @@
+{% extends "_base.html" %}
+{% block titulo %}Chamados de suporte — {{ loja }}{% endblock %}
+{% block corpo %}{{ 'tv' if tv }}{% endblock %}
+{% block css %}
+.topo{display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin-bottom:14px}.topo .esp{flex:1}
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;margin-bottom:12px}.kpi b{display:block;font-size:26px}.tv .kpi b{font-size:36px}
+.abas{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px}.abas a{padding:7px 12px;border:1px solid var(--lin);border-radius:8px;color:var(--tx);background:var(--card)}.abas a.at{background:var(--tx);color:var(--bg)}
+.lista{display:grid;grid-template-columns:repeat(auto-fill,minmax(330px,1fr));gap:12px}
+.ch{border-left:5px solid var(--sc);display:flex;flex-direction:column;gap:8px}.ch h3{margin:0;font-size:16px}
+.s-aberto{--sc:var(--al)}.s-atendimento{--sc:var(--pri)}.s-aguardando{--sc:var(--am)}.s-concluido{--sc:var(--ok)}.s-cancelado{--sc:var(--mut)}
+.pill{font-size:12px;font-weight:600;color:var(--sc);border:1px solid var(--sc);border-radius:99px;padding:1px 9px;white-space:nowrap}
+.tp{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;font-size:11.5px;color:var(--mut)}.tp b{display:block;color:var(--tx);font-size:14px}
+.cx{background:var(--bg);border-radius:8px;padding:8px 10px;font-size:13px;margin:0}.ac{display:flex;gap:6px;flex-wrap:wrap}.ac button,.ac a{padding:6px 10px;font-size:13px}
+.sec{background:var(--card);color:var(--tx);border:1px solid var(--lin)}.ac input{padding:6px 8px;font-size:13px;flex:1;min-width:120px}
+details.card summary{cursor:pointer;font-weight:600}form.novo{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:8px;margin-top:10px}form.novo textarea{grid-column:1/-1}
+select{font:inherit;border-radius:8px;border:1px solid var(--lin);padding:10px 12px;background:var(--card);color:var(--tx)}
+.msg pre{white-space:pre-wrap;font:inherit;background:var(--bg);padding:10px;border-radius:8px;margin:8px 0}
+{% endblock %}
+{% block conteudo %}
+{% set qs = ('&tv=1' if tv else '') ~ ('&chave=' ~ chave if chave else '') %}
+{% if tv %}<meta http-equiv="refresh" content="60">{% endif %}
+<div class="wrap">
+ <div class="topo"><h1>{{ loja }}</h1><div class="nav"><a href="/painel?{{ qs[1:] }}">Ordens de serviço</a><a href="/terceirizada?{{ qs[1:] }}">Terceirizada</a><a class="at" href="/chamados?{{ qs[1:] }}">Chamados{% if k.alertas %}<span class="bola">{{ k.alertas }}</span>{% endif %}</a>{% if not tv and not chave %}<a href="/config">Configuração</a>{% endif %}</div>
+  <span class="mut">Suporte ao sistema · independente do Uniplus</span><span class="esp"></span>
+  {% if not tv %}<a class="btn" href="/chamados?tv=1">Modo telão</a><a href="/sair">Sair</a>{% endif %}</div>
+
+ {% if k.alertas %}<div class="alerta {{ 'pisca' if tv }}">⚠ {{ k.alertas }} chamado(s) em alerta: aberto sem atendimento há mais de {{ alerta_min }} min ou aguardando o cliente há mais de {{ alerta_h }} h</div>{% endif %}
+
+ {% if msg and not tv %}<div class="card msg" style="margin-bottom:12px"><b>Chamado #{{ msg.c.id }} · {{ msg.c.rotulo }}</b> —
+  {% if msg.auto %}<span class="ok">cliente avisado pelo WhatsApp automaticamente.</span>{% else %}aviso automático desligado ou não enviado. Envie a mensagem abaixo:{% endif %}
+  <pre>{{ msg.texto }}</pre>{% if not msg.auto %}<a class="btn" target="_blank" rel="noopener" href="{{ msg.wa }}">Abrir no WhatsApp</a>{% endif %}</div>{% endif %}
+
+ <div class="kpis">
+  <div class="card kpi {{ 'verm' if k.alertas }}"><h2>Abertos</h2><b class="{{ 'al' if k.alertas }}">{{ k.abertos }}</b></div>
+  <div class="card kpi"><h2>Em atendimento</h2><b>{{ k.atend }}</b></div>
+  <div class="card kpi"><h2>Aguardando cliente</h2><b>{{ k.aguard }}</b></div>
+  <div class="card kpi"><h2>Concluídos hoje</h2><b>{{ k.hoje }}</b></div>
+  <div class="card kpi"><h2>Espera média</h2><b>{{ k.espera }}</b></div>
+  <div class="card kpi"><h2>Atendimento médio</h2><b>{{ k.atendm }}</b></div>
+  <div class="card kpi"><h2>Nota média</h2><b>{{ '%.1f'|format(k.nota) ~ ' ★' if k.nota else '–' }}</b></div>
+ </div>
+
+ <div class="graf">
+  <div class="card"><h2>Chamados por dia (14 dias)</h2><span class="leg"><b class="ca" style="margin-left:0"></b>Abertos<b class="cb"></b>Concluídos</span>
+   <div class="cols" style="gap:4px">{% for s in dias %}<div><div class="par"><i class="ca" style="height:{{ s.a / max_dia * 85 }}%"><span>{{ s.a or '' }}</span></i><i class="cb" style="height:{{ s.b / max_dia * 85 }}%"><span>{{ s.b or '' }}</span></i></div>{{ s.r[:2] }}</div>{% endfor %}</div></div>
+  <div class="card"><h2>Avaliações dos clientes ({{ n_notas }})</h2>
+   {% for n in dist %}<div class="hb" style="grid-template-columns:60px 1fr 34px"><span>{{ 5 - loop.index0 }} ★</span><div><i class="{{ 'r' if loop.index0 >= 3 }}" style="width:{{ n / ([n_notas,1]|max) * 100 }}%"></i></div><b>{{ n }}</b></div>{% endfor %}</div>
+ </div>
+
+ {% if not tv %}
+ <details class="card" style="margin-bottom:12px" {{ 'open' if not lista and f == 'ativos' }}><summary>+ Novo chamado</summary>
+  <form class="novo" method="post" action="/chamados/novo">
+   <input name="cliente" placeholder="Cliente" required><input name="telefone" placeholder="WhatsApp com DDD" inputmode="tel" required><input name="tecnico" placeholder="Técnico">
+   <select name="canal"><option>WhatsApp</option><option>Telefone</option><option>Presencial</option></select>
+   <select name="tipo"><option>Erro no sistema</option><option>Dúvida</option><option>Instalação</option><option>Treinamento</option></select>
+   <select name="modalidade"><option>Remoto</option><option>Presencial</option></select>
+   <textarea name="problema" rows="2" placeholder="Problema declarado" required></textarea><button>Abrir chamado e avisar o cliente</button></form></details>
+ <div class="abas">{% for v, t in [('ativos','Em andamento (' ~ k.ativos ~ ')'),('concluido','Concluídos (' ~ k.conc ~ ')'),('cancelado','Cancelados'),('todos','Todos')] %}<a class="{{ 'at' if f == v }}" href="/chamados?f={{ v }}">{{ t }}</a>{% endfor %}
+  {% if tem_exemplo %}<form method="post" action="/chamados/apagar-exemplos" style="margin-left:auto"><button class="sec">Apagar exemplos</button></form>{% endif %}</div>{% endif %}
+
+ <div class="lista">{% for c in lista[:(9 if tv else 300)] %}
+  <div class="card ch s-{{ c.status }} {{ 'verm' if c.alerta }}" id="c{{ c.id }}">
+   <div style="display:flex;justify-content:space-between;gap:8px"><div><span class="mut">#{{ c.id }}{{ ' · exemplo' if c.exemplo }}</span><h3>{{ c.cliente|reserva(tv) }}</h3></div><span><span class="pill">{{ c.rotulo }}</span></span></div>
+   {% if c.alerta %}<b class="al">⚠ {{ c.motivo }}</b>{% endif %}
+   <div>{{ c.problema }}</div>
+   {% if c.origem == 'helpme' %}<span class="mut">🖥 Help me!{{ ' · ' ~ c.empresa if c.empresa }}{{ ' · ' ~ c.equipamento if c.equipamento }}{{ ' · nº ' ~ c.numero_acesso if c.numero_acesso }}</span>{% endif %}
+   <span class="mut">{{ c.tipo }} · {{ c.modalidade }} · via {{ c.canal }} · {{ 'Técnico: ' ~ c.tecnico if c.tecnico else 'Sem técnico' }} · aberto {{ c.aberto_em|dt }}</span>
+   <div class="tp"><span>Espera<b class="{{ 'al' if c.alerta and c.status == 'aberto' }}">{{ fm(c.espera) }}</b></span><span>Atendimento<b>{{ fm(c.atend) }}</b></span><span>Aguardando<b class="{{ 'al' if c.alerta and c.status == 'aguardando' }}">{{ fm(c.aguardando) if c.aguardando else '–' }}</b></span><span>Total<b>{{ fm(c.total) }}</b></span></div>
+   {% if c.solucao %}<p class="cx"><b>Solução:</b> {{ c.solucao }}</p>{% endif %}
+   {% if c.nota %}<p class="cx"><b>Nota {{ c.nota }}/5</b>{{ ': ' ~ c.comentario if c.comentario }}</p>{% elif c.status == 'concluido' %}<span class="mut">Aguardando avaliação do cliente</span>{% endif %}
+   {% if not tv %}
+    {% if 'concluido' in c.acoes %}<form class="ac" method="post" action="/chamados/{{ c.id }}/mover"><input type="hidden" name="status" value="concluido"><input name="solucao" placeholder="Solução aplicada" required><button>Concluir</button></form>{% endif %}
+    <div class="ac">{% for a, t in [('atendimento', 'Iniciar atendimento' if c.status == 'aberto' else 'Retomar'), ('aguardando','Aguardar cliente'), ('cancelado','Cancelar')] if a in c.acoes %}
+     <form method="post" action="/chamados/{{ c.id }}/mover"><input type="hidden" name="status" value="{{ a }}"><button class="{{ 'sec' if a != 'atendimento' }}">{{ t }}</button></form>{% endfor %}
+     <a class="btn sec" href="/chamados?f={{ f }}&msg={{ c.id }}">Mensagem</a>
+     {% if helpme_url and c.status in ('aberto','atendimento','aguardando') %}<a class="btn sec" target="_blank" rel="noopener" href="{{ helpme_url }}/#fila">🖥 Acesso remoto</a>{% endif %}</div>
+    {% for r in remotos(c.id) %}<span class="mut">🖥 Atendimento remoto nº {{ r.sessao }} · {{ r.tecnico }} · {{ r.duracao }} · {{ 'concluído' if r.status == 'concluido' else 'pendente' }} · <a href="/chamados/{{ c.id }}/remoto/{{ r.id }}" target="_blank">relatório</a></span>{% endfor %}{% endif %}
+  </div>{% else %}<div class="card mut">Nenhum chamado nesta lista.</div>{% endfor %}</div>
+ {% if not tv %}<p class="mut">Aviso automático pelo WhatsApp: {{ 'ligado' if wa else 'desligado — a cada etapa a mensagem fica pronta para abrir no WhatsApp' }}.</p>{% endif %}
+</div>
+{% endblock %}

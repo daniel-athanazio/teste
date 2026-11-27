@@ -1,0 +1,25 @@
+# Help me! + Gestor de OS no VPS (Ubuntu 24.04).  Subir com:  docker compose up -d --build
+# Ajuste o arquivo .env (veja .env.exemplo). O Nginx do VPS faz o HTTPS (nginx-helpme.conf).
+services:
+  helpme:                     # servidor do acesso remoto + painel dos técnicos + site de downloads
+    build: { context: .., dockerfile: servidor/Dockerfile }
+    environment:
+      FN_ADMIN_USUARIO: ${FN_ADMIN_USUARIO}
+      FN_ADMIN_SENHA: ${FN_ADMIN_SENHA}
+      FN_URL_PUBLICA: https://${DOMINIO}
+      FN_EMPRESA: ${FN_EMPRESA}
+      FN_CONTATO: ${FN_CONTATO}
+      FN_TZ: America/Sao_Paulo
+    volumes: ["./helpme-dados:/data"]
+    ports: ["127.0.0.1:8010:8000"]
+    restart: unless-stopped
+
+  gestor:                     # gestor de OS (Uniplus) + chamados (triagem dos atendimentos)
+    build: ../gestor-os
+    environment:
+      BANCO: /data/gestor.db
+      HELPME_URL: https://${DOMINIO}
+    # a aba Configuração do gestor grava no .env: fica fora do contêiner para não se perder
+    volumes: ["./gestor-dados:/data", "./gestor.env:/srv/.env"]
+    ports: ["127.0.0.1:8020:8000"]
+    restart: unless-stopped

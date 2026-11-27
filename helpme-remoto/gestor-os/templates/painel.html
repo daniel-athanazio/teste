@@ -1,0 +1,115 @@
+{% extends "_base.html" %}
+{% block titulo %}Painel de OS — {{ loja }}{% endblock %}
+{% block corpo %}{{ 'tv' if tv }}{% endblock %}
+{% block css %}
+.lk{background:none;border:0;color:var(--pri);padding:0;font-weight:400;font-size:12.5px;cursor:pointer}
+.duo{display:grid;grid-template-columns:minmax(0,3fr) minmax(250px,1fr);gap:12px;align-items:start}@media(max-width:900px){.duo{grid-template-columns:1fr}}
+.terc h2{margin-bottom:10px}.tfx{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-bottom:10px;text-align:center;font-size:11.5px;color:var(--mut)}
+.tfx span{border-radius:8px;border:1px solid var(--lin);border-top:5px solid var(--c);padding:6px 2px}.tfx b{display:block;font-size:22px;color:var(--c)}
+.terc .verde{--c:var(--ok)}.terc .amarelo{--c:#e09400}.terc .vermelho{--c:var(--al)}
+.tit{display:flex;flex-direction:column;gap:2px;color:var(--tx);border-left:6px solid var(--c);border-radius:6px;background:var(--bg);padding:8px 10px;margin-bottom:8px;font-size:13.5px}
+.tit .l1{display:flex;justify-content:space-between;gap:8px;align-items:center}.tv .tit{font-size:16px}
+.pz{display:flex;gap:18px;align-items:center;flex-wrap:wrap}.pz svg{width:190px;height:190px;flex:none}.tv .pz svg{width:230px;height:230px}
+.lg{display:grid;grid-template-columns:14px 1fr auto;gap:8px;align-items:center;color:var(--tx);padding:3px 0;font-size:14px;min-width:230px}.lg b{width:12px;height:12px;border-radius:3px}.lg span{color:var(--mut)}
+.cg{background:#9aa5b1}.am{color:var(--am)}
+.sn{display:inline-flex;align-items:center;gap:6px;font-weight:700;font-size:12.5px;white-space:nowrap}.sn i{width:11px;height:11px;border-radius:50%;background:var(--mut)}
+.sn.verde{color:var(--ok)}.sn.verde i{background:var(--ok)}.sn.amarelo{color:var(--am)}.sn.amarelo i{background:#f5a623}.sn.vermelho{color:var(--al)}.sn.vermelho i{background:var(--al)}
+.topo{display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin-bottom:14px}.topo .esp{flex:1}
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:10px;margin-bottom:12px}
+.kpi b{display:block;font-size:30px;line-height:1.1}.tv .kpi b{font-size:38px;white-space:nowrap}.tv .wrap{max-width:none;padding:20px 28px}
+.sits{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin-bottom:12px}
+.sit{display:block;color:var(--tx)}.sit b{font-size:26px;display:block}.tv .sit b{font-size:38px}.sit.at{outline:2px solid var(--pri)}
+table{width:100%;border-collapse:collapse}th,td{text-align:left;padding:8px 10px;border-bottom:1px solid var(--lin);vertical-align:top}
+th{font-size:12px;color:var(--mut);text-transform:uppercase;letter-spacing:.04em}.tv td{font-size:18px}
+.tag{display:inline-block;padding:2px 8px;border-radius:99px;font-size:12px;font-weight:600;border:1px solid var(--lin);white-space:nowrap}
+.tag.atr{background:var(--al);color:#fff;border-color:var(--al)}
+.faixa{background:var(--am);color:#fff;padding:8px 14px;border-radius:8px;margin-bottom:12px;font-weight:600}
+.faixa.erro{background:var(--al)}.rol{overflow-x:auto}.barra{height:8px;background:var(--lin);border-radius:9px;overflow:hidden;margin-top:6px}
+.barra i{display:block;height:100%;background:var(--ok)}
+{% endblock %}
+{% block conteudo %}
+{% set qs = ('&tv=1' if tv else '') ~ ('&chave=' ~ chave if chave else '') %}
+{% if tv %}<meta http-equiv="refresh" content="60">{% endif %}
+<div class="wrap">
+ <div class="topo"><h1>{{ loja }}</h1><div class="nav"><a class="at" href="/painel?{{ qs[1:] }}">Ordens de serviço</a><a href="/terceirizada?{{ qs[1:] }}">Terceirizada{% if d.terc %} ({{ d.terc|length }}){% endif %}</a><a href="/chamados?{{ qs[1:] }}">Chamados{% if d.ch.alertas %}<span class="bola">{{ d.ch.alertas }}</span>{% endif %}</a>{% if not tv and not chave %}<a href="/config">Configuração</a>{% endif %}</div>
+  <span class="mut">Atualizado {{ d.ultima_sync|dt if d.ultima_sync else 'nunca' }}</span><span class="esp"></span>
+  {% if not tv %}
+  <form><input name="q" value="{{ q }}" placeholder="Buscar OS, cliente, série…">{% if sit %}<input type="hidden" name="s" value="{{ sit }}">{% endif %}</form>
+  <form method="post" action="/sincronizar"><button>Sincronizar</button></form>
+  <a class="btn" href="/painel?tv=1">Modo telão</a><a href="/sair">Sair</a>{% else %}<span class="mut">{{ hoje|dt('%d/%m/%Y %H:%M') }}</span>{% endif %}
+ </div>
+ {% if demo %}<div class="faixa">DADOS DE DEMONSTRAÇÃO — abra a aba Configuração e informe o Uniplus para ver as OS reais</div>{% endif %}
+ {% if d.ultimo_erro %}<div class="faixa erro">Falha ao ler o Uniplus: {{ d.ultimo_erro }}</div>{% endif %}
+
+ {% if d.atrasadas or d.ch.alertas or d.legais %}<div class="alerta {{ 'pisca' if tv }}">⚠
+  {% if d.atrasadas %}<a href="/painel?s=atrasadas{{ qs }}">{{ d.atrasadas|length }} OS fora do prazo</a>{% endif %}
+  {% if d.legais %}{{ ' · ' if d.atrasadas }}<a href="/painel?s=legal{{ qs }}">{{ d.legais|length }} OS perto ou além do prazo legal de 30 dias</a>{% endif %}
+  {% if (d.atrasadas or d.legais) and d.ch.alertas %} · {% endif %}
+  {% if d.ch.alertas %}<a href="/chamados?{{ qs[1:] }}">{{ d.ch.alertas }} chamado(s) de suporte em alerta</a>{% endif %}</div>{% endif %}
+ {% if cfg.PERIODO_INI or cfg.PERIODO_FIM %}<p class="mut" style="margin:0 0 10px">Exibindo OS abertas {{ 'de ' ~ cfg.PERIODO_INI|dt('%d/%m/%y') if cfg.PERIODO_INI }} {{ 'até ' ~ cfg.PERIODO_FIM|dt('%d/%m/%y') if cfg.PERIODO_FIM }} (ajuste na Configuração).</p>{% endif %}
+ <div class="kpis">
+  <div class="card kpi"><h2>Em aberto</h2><b>{{ d.abertas_total }}</b></div>
+  <a class="card kpi sit {{ 'verm' if d.atrasadas }}" href="/painel?s=atrasadas{{ qs }}"><h2>Fora do prazo</h2><b class="{{ 'al' if d.atrasadas }}">{{ d.atrasadas|length }}</b>
+   <span class="mut">serviço {{ prazo }}d · visita {{ prazo_visita }}d</span></a>
+  <div class="card kpi"><h2>Tempo médio</h2><b>{{ '%.1f'|format(d.tempo_medio) ~ ' d' if d.tempo_medio is not none else '—' }}</b><span class="mut">finalizadas, 90 dias</span></div>
+  <div class="card kpi"><h2>Satisfação</h2><b>{{ '%.1f'|format(d.nota_media) ~ ' ★' if d.nota_media else '—' }}</b><span class="mut">{{ d.n_aval }} avaliações</span></div>
+  {% if d.garantia.ligado %}<div class="card kpi {{ 'verm' if d.garantia.pct and d.garantia.pct > 5 }}"><h2>Retornos em garantia</h2><b>{{ d.garantia.n }}</b><span class="mut">12 meses{{ ' · ' ~ '%.1f'|format(d.garantia.pct) ~ '% das finalizadas' if d.garantia.pct is not none }}</span></div>{% endif %}
+  {% if dono %}<div class="card kpi"><h2>Serviços no mês</h2><b>{{ d.fat_mes|brl }}</b>
+   {% if d.meta %}<div class="barra"><i style="width:{{ [100, d.fat_mes / d.meta * 100]|min }}%"></i></div><span class="mut">meta {{ d.meta|brl }}</span>{% else %}<span class="mut">sem meta definida</span>{% endif %}
+   <form method="post" action="/dono" style="margin-top:4px"><button class="lk" name="acao" value="ocultar">ocultar valores</button></form></div>
+  {% elif not tv %}<a class="card kpi sit" href="/dono"><h2>Serviços no mês</h2><b class="mut">R$ •••</b><span class="mut">valores restritos à senha master · ver</span></a>{% endif %}
+ </div>
+
+ <div class="sits">
+  <a class="card sit {{ 'at' if not sit }}" href="/painel?{{ qs[1:] }}"><h2>Em aberto na loja</h2><b>{{ d.abertas_total - d.terc|length }}</b></a>
+  {% for k, t, _ in situacoes %}<a class="card sit {{ 'at' if sit == k }}" href="{{ '/terceirizada?' ~ qs[1:] if k == 'terceirizada' else '/painel?s=' ~ k ~ qs }}"><h2>{{ t }}</h2><b>{{ d.contagem[k] }}</b>
+   {% if k in ('finalizadas','canceladas') %}<span class="mut">em {{ hoje|dt('%m/%Y') }}</span>{% endif %}</a>{% endfor %}
+ </div>
+
+ <div class="graf">
+  <div class="card"><h2>{{ 'Valor das OS finalizadas em cada mês (R$)' if d.metrica == 'valor' else 'Quantidade de OS abertas em cada mês' }}</h2>
+   <p class="mut" style="margin:0 0 6px;font-size:12.5px">Cada mês tem duas colunas: a azul é o mês indicado embaixo; a cinza é o mesmo mês um ano antes. O número em cima é a {{ 'soma em reais' if d.metrica == 'valor' else 'quantidade de OS' }}.</p>
+   <span class="leg"><b class="ca" style="margin-left:0"></b>Azul: últimos 12 meses (total {{ d.tot_a|brl if d.metrica == 'valor' else d.tot_a }})<b class="cg"></b>Cinza: os mesmos meses, um ano antes (total {{ d.tot_b|brl if d.metrica == 'valor' else d.tot_b }})
+   {% if dono %} · <a href="/painel?g={{ 'qtd' if d.metrica == 'valor' else 'valor' }}{{ '&s=' ~ sit if sit }}">ver {{ 'quantidade' if d.metrica == 'valor' else 'valor (R$)' }}</a>{% endif %}</span>
+   <div class="cols" style="gap:6px">{% for s in d.comp %}<div><div class="par"><i class="cg" style="height:{{ s.b / d.max_comp * 85 }}%"><span>{{ ('%.0f'|format(s.b) if d.metrica == 'valor' else s.b) if s.b else '' }}</span></i><i class="ca" style="height:{{ s.a / d.max_comp * 85 }}%"><span>{{ ('%.0f'|format(s.a) if d.metrica == 'valor' else s.a) if s.a else '' }}</span></i></div>{{ s.r }}</div>{% endfor %}</div></div>
+  <div class="card"><h2>Em aberto por status</h2>
+   <div class="pz">{% if d.pizza %}<svg viewBox="0 0 42 42" role="img" aria-label="Pizza das OS em aberto por status">
+    {% for f in d.pizza %}<circle cx="21" cy="21" r="15.915" fill="none" stroke="{{ f.cor }}" stroke-width="10.5" stroke-dasharray="{{ '%.3f'|format(f.p) }} {{ '%.3f'|format(100 - f.p) }}" stroke-dashoffset="{{ '%.3f'|format(f.off) }}"><title>{{ f.t }}: {{ f.n }}</title></circle>{% endfor %}
+    <text x="21" y="20.5" text-anchor="middle" font-size="7" font-weight="700" fill="currentColor">{{ d.abertas_total }}</text><text x="21" y="25.5" text-anchor="middle" font-size="2.6" fill="currentColor">em aberto</text></svg>
+    <div>{% for f in d.pizza %}<a class="lg" href="/painel?s={{ f.k }}{{ qs }}"><b style="background:{{ f.cor }}"></b>{{ f.t }}<span>{{ f.n }} · {{ '%.0f'|format(f.p) }}%</span></a>{% endfor %}</div>
+   {% else %}<span class="mut">Nenhuma OS em aberto no período.</span>{% endif %}</div></div>
+ </div>
+ {% if d.tecnicos and not tv %}<div class="card rol" style="margin-bottom:12px"><h2>Desempenho por técnico · últimos 90 dias</h2><table>
+  <tr><th>Técnico</th><th>Finalizadas</th><th>Tempo médio</th><th>Em aberto</th><th>Vencidas</th>{% if d.garantia.ligado %}<th>Retornos em garantia</th>{% endif %}<th>Nota</th></tr>
+  {% for r in d.tecnicos %}<tr><td><b>{{ r.nome }}</b></td><td>{{ r.fin }}</td><td>{{ '%.1f d'|format(r.tempo) if r.tempo is not none else '—' }}</td><td>{{ r.abertas }}</td>
+   <td class="{{ 'al' if r.vencidas }}">{{ r.vencidas }}</td>{% if d.garantia.ligado %}<td class="{{ 'al' if r.garantia }}">{{ r.garantia }}</td>{% endif %}<td>{{ '%.1f ★'|format(r.nota) if r.nota is not none else '—' }}</td></tr>{% endfor %}</table></div>{% endif %}
+ <div class="duo">
+ <div class="card rol"><table>
+  <tr><th>OS</th><th>Cliente</th><th>Equipamento</th><th>Nº série</th><th>Situação</th><th>Técnico</th><th>Abertura</th><th>Prazo da etapa</th>{% if not tv %}<th></th>{% endif %}</tr>
+  {% for o in lista[:(8 if tv else 400)] %}
+  <tr><td><b class="{{ 'al' if o.atrasada }}">{{ o.codigo }}</b>{% if o.garantia %}<br><span class="tag atr" title="Retorno em garantia: {{ o.garantia }}">garantia</span>{% endif %}</td><td>{{ o.cliente|reserva(tv) }}</td>
+   <td>{{ o.equipamento }}{% if not tv and o.problema %}<br><span class="mut">{{ o.problema[:90] }}</span>{% endif %}</td>
+   <td>{{ o.serie or '—' }}</td>
+   <td><span class="tag">{{ o.titulo }}</span>{% if not tv and o.status and o.status != o.titulo %}<br><span class="mut">{{ o.status }}</span>{% endif %}</td>
+   <td>{{ o.tecnico or '—' }}</td><td>{{ o.abertura|dt('%d/%m/%y') }}{% if o.dias_aberta is not none %}<br><span class="mut">{{ o.dias_aberta }} d</span>{% endif %}</td>
+   <td>{% if o.sinal.txt or o.sinal.legal %}<span class="sn {{ o.sinal.cor }}"><i></i>{{ o.sinal.rot }}</span>
+    {% if o.sinal.txt %}<br><span class="mut">{{ o.sinal.txt }}</span>{% endif %}{% if o.sinal.legal %}<br><b class="{{ 'al' if o.sinal.cor == 'vermelho' else 'am' }}">{{ o.sinal.legal }}</b>{% endif %}
+    {% elif o.atrasada %}<span class="tag atr">{{ o.dias_atraso ~ ' d de atraso' if o.dias_atraso else 'venceu hoje' }}</span>{% else %}—{% endif %}</td>
+   {% if not tv %}<td><a href="/c/{{ o.codigo }}" target="_blank">consulta</a></td>{% endif %}</tr>
+  {% else %}<tr><td colspan="9" class="mut">Nenhuma OS nesta visão.</td></tr>{% endfor %}
+ </table></div>
+ <aside class="card terc"><h2><a href="/terceirizada?{{ qs[1:] }}" style="color:inherit">Na terceirizada ({{ d.terc|length }})</a></h2>
+  {% set ct = namespace(v=0, a=0, r=0) %}{% for o in d.terc %}{% if o.sinal.cor == 'verde' %}{% set ct.v = ct.v + 1 %}{% elif o.sinal.cor == 'amarelo' %}{% set ct.a = ct.a + 1 %}{% else %}{% set ct.r = ct.r + 1 %}{% endif %}{% endfor %}
+  <div class="tfx"><span class="verde"><b>{{ ct.v }}</b>no prazo</span><span class="amarelo"><b>{{ ct.a }}</b>atenção</span><span class="vermelho"><b>{{ ct.r }}</b>vencido</span></div>
+  {% for o in d.terc[:(6 if tv else 40)] %}<a class="tit {{ o.sinal.cor }}" href="/terceirizada?{{ qs[1:] }}">
+   <span class="l1"><b>OS {{ o.codigo }}</b><span class="sn {{ o.sinal.cor }}"><i></i>{{ o.sinal.dias }} d · {{ o.sinal.rot }}</span></span>
+   <span>{{ o.equipamento or '—' }}</span><span class="mut">{{ o.cliente|reserva(tv) }} · enviado {{ (o.evento_em or o.abertura)|dt('%d/%m/%y') }}</span></a>
+  {% else %}<p class="mut">Nenhum equipamento fora.</p>{% endfor %}
+  {% if d.terc|length > (6 if tv else 40) %}<p class="mut">+ {{ d.terc|length - (6 if tv else 40) }} na aba Terceirizada</p>{% endif %}
+  <p class="mut" style="margin-bottom:0;font-size:12px">Amarelo a partir de {{ cfg.TERC_AMARELO_DIAS }} d · vermelho a partir de {{ cfg.PRAZO_TERCEIRIZADA_DIAS }} d</p></aside>
+ </div>
+
+ {% if not tv %}<p class="mut">Avisos por WhatsApp: {{ 'ligados' if wa else 'desligados (configure WA_TOKEN e WA_PHONE_ID)' }}.
+ {% if d.ult_av %}Últimas avaliações: {% for a in d.ult_av %}OS {{ a.codigo }} {{ a.nota }}★{% if a.comentario %} “{{ a.comentario[:80] }}”{% endif %}{{ ' · ' if not loop.last }}{% endfor %}{% endif %}</p>{% endif %}
+</div>
+{% endblock %}
