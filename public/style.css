@@ -52,3 +52,14 @@ input[type=color] { width:100%; height:44px; padding:2px; border:1px solid var(-
 .redes legend { font-weight:700; padding:0 6px; }
 details summary { cursor:pointer; color:var(--pri); margin-top:8px; }
 details ol { padding-left:20px; font-size:14px; }
+input[type=time] { width:100%; padding:10px; border:1px solid var(--bd); border-radius:8px; background:var(--bg); color:var(--tx); }
+.pr-nums { grid-template-columns:repeat(3,1fr); text-align:center; }
+.num { font-size:34px; font-weight:800; }
+.barras { display:flex; align-items:flex-end; gap:3px; height:120px; }
+.barra { flex:1; display:flex; flex-direction:column; justify-content:flex-end; align-items:center; height:100%; min-width:0; }
+.barra i { display:block; width:100%; background:var(--pri); border-radius:3px 3px 0 0; min-height:1px; }
+.barra .v, .barra .r { font-size:11px; color:var(--mut); line-height:16px; }
+.sensor { padding:6px 0; color:var(--tx); }
+.dot { display:inline-block; width:10px; height:10px; border-radius:50%; background:var(--ok); margin-right:6px; }
+.dot.mov { background:#f59e0b; } .dot.off { background:var(--mut); }
+pre.cod { background:var(--bg); border:1px solid var(--bd); border-radius:8px; padding:10px; white-space:pre-wrap; word-break:break-all; font-size:13px; }

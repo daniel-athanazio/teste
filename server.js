@@ -251,6 +251,21 @@ app.post('/api/social/sincronizar', requireToken, async (req, res) => {
   res.json(social.publicState());
 });
 
+// ---------- sensor de presença por Wi-Fi ----------
+const presenca = require('./presenca')({ config, saveConfig: () => writeJson(CONFIG_FILE, config), DATA_DIR });
+
+// Aviso de um sensor (ESP32, roteador, Home Assistant...). Aceita POST (JSON) ou GET (?sensor=..&movimento=1&k=..)
+app.all('/api/presenca/evento', requireToken, (req, res) => {
+  res.json(presenca.receber({ ...req.query, ...(req.body || {}) }));
+});
+app.get('/api/presenca', requireToken, (req, res) => {
+  res.json({ ...presenca.publicState(), urlEvento: `${baseUrl()}/api/presenca/evento`, ip: lanIp(), porta: PORT, token: config.token });
+});
+app.put('/api/presenca', requireToken, (req, res) => { presenca.update(req.body || {}); res.json(presenca.publicState()); });
+app.get('/api/presenca/visitas.csv', requireToken, (req, res) => {
+  res.type('text/csv').attachment('visitas.csv').send(presenca.csv());
+});
+
 app.use((err, req, res, next) => {
   console.error(err);
   res.status(500).json({ erro: err.message || 'Erro interno' });

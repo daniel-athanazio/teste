@@ -85,6 +85,62 @@
       salve a foto ou o vídeo no celular e envie pelo QR code “Enviar pelo celular”.</p>
   </div>
 
+  <div class="card" id="presenca">
+    <h2>📡 Sensor de presença (Wi-Fi) <span class="tag" id="prStatus">…</span></h2>
+    <div class="grid pr-nums">
+      <div><div class="num" id="prHoje">0</div><div class="mut">visitas hoje</div></div>
+      <div><div class="num" id="prSemana">0</div><div class="mut">nos últimos 7 dias</div></div>
+      <div><div class="num" id="prSensores">0</div><div class="mut">sensores online</div></div>
+    </div>
+    <div class="msg err" id="prDisparo" hidden></div>
+    <label>Visitas por hora (hoje)</label>
+    <div class="barras" id="prHoras"></div>
+    <label>Últimos 7 dias</label>
+    <div class="barras dias" id="prDias"></div>
+    <p><a class="btn sec" id="prCsv" download>Baixar planilha de visitas</a></p>
+
+    <label>Sensores</label>
+    <div id="prLista" class="mut">Nenhum sensor enviou sinal ainda.</div>
+
+    <div class="redes" style="margin-top:16px">
+      <fieldset>
+        <legend>🚨 Alarme de presença</legend>
+        <label class="check"><input type="checkbox" id="alArmado"> Alarme ligado agora</label>
+        <label class="check"><input type="checkbox" id="alAuto"> Ligar sozinho todo dia</label>
+        <div class="row"><div><label>Das</label><input type="time" id="alDe"></div><div><label>Até</label><input type="time" id="alAte"></div></div>
+        <label>Avisar no celular (URL, opcional)</label>
+        <input type="text" id="alWebhook" placeholder="https://ntfy.sh/minha-loja-alarme-123">
+        <details><summary>Como receber o aviso no celular</summary><ol>
+          <li><b>ntfy (mais fácil, grátis):</b> instale o app <b>ntfy</b>, toque em “+” e assine um nome difícil de adivinhar, ex.: <code>minha-loja-alarme-8273</code>. Cole aqui <code>https://ntfy.sh/minha-loja-alarme-8273</code>.</li>
+          <li><b>Telegram:</b> crie um bot com o <b>@BotFather</b>, mande uma mensagem para ele e descubra seu chat_id. Cole aqui
+            <code>https://api.telegram.org/bot&lt;TOKEN&gt;/sendMessage?chat_id=&lt;ID&gt;&amp;text={msg}</code></li>
+          <li>Qualquer URL com <code>{msg}</code> recebe a mensagem nesse lugar (GET). Sem <code>{msg}</code>, a mensagem vai no corpo de um POST.</li>
+          <li>O computador do painel precisa de internet para enviar o aviso.</li>
+        </ol></details>
+      </fieldset>
+      <fieldset>
+        <legend>Contagem de visitas</legend>
+        <label>Segundos parado para contar uma nova visita</label>
+        <input type="number" id="prIntervalo" min="5" max="3600">
+        <p class="mut">Cada vez que o movimento começa depois de esse tempo sem ninguém se mexer, conta 1 visita.
+          O sinal de Wi-Fi detecta <b>movimento</b>, não quantas pessoas: duas pessoas entrando juntas contam como uma visita.</p>
+      </fieldset>
+    </div>
+    <div class="acts" style="margin-top:12px">
+      <button id="prSalvar">Salvar</button>
+      <button class="sec" id="prSilenciar" hidden>Silenciar alarme</button>
+    </div>
+
+    <details><summary>Como instalar um sensor</summary>
+      <p><b>Placa ESP32</b> (recomendado, ~R$ 40): grave o programa da pasta <code>sensor-esp32/</code> (instruções no arquivo).
+        Coloque nele o nome e a senha do Wi-Fi e estes dados do painel:</p>
+      <pre class="cod" id="prCfg"></pre>
+      <p><b>Roteador, Home Assistant, SmartThings ou IFTTT</b> com detecção de movimento: crie uma automação que, ao detectar
+        movimento, abra a URL abaixo (e, se puder, a mesma com <code>movimento=0</code> quando parar):</p>
+      <pre class="cod" id="prUrl"></pre>
+    </details>
+  </div>
+
   <div class="card">
     <h2>Anúncios <span class="mut" id="resumo"></span></h2>
     <div id="lista"><p class="mut">Carregando…</p></div>
@@ -243,6 +299,67 @@ $('sincronizar').onclick = function () {
     .then(function (s) { mostrarSocial(s); carregar(); }).catch(alerta);
 };
 api('GET', '/api/social').then(mostrarSocial).catch(alerta);
+
+// ----- sensor de presença -----
+function quando(t) {
+  var s = Math.round((Date.now() - t) / 1000);
+  return s < 60 ? 'há ' + s + ' s' : s < 3600 ? 'há ' + Math.round(s / 60) + ' min' : new Date(t).toLocaleString('pt-BR');
+}
+function barras(el, valores, rotulos) {
+  var max = Math.max.apply(null, valores.concat([1]));
+  el.innerHTML = '';
+  valores.forEach(function (v, i) {
+    var b = document.createElement('div'); b.className = 'barra'; b.title = rotulos[i] + ': ' + v + ' visita(s)';
+    b.innerHTML = '<span class="v">' + (v || '') + '</span><i style="height:' + (v / max * 100) + '%"></i><span class="r">' + rotulos[i] + '</span>';
+    el.appendChild(b);
+  });
+}
+var prEditando = false;
+function mostrarPresenca(p) {
+  var st = $('prStatus');
+  var on = p.sensores.filter(function (s) { return s.online; }).length;
+  st.textContent = !on ? 'sem sensor' : p.presente ? 'movimento agora' : 'ninguém se mexendo';
+  st.className = 'tag' + (p.presente ? ' on' : '');
+  $('prHoje').textContent = p.visitasHoje;
+  $('prSemana').textContent = p.dias.reduce(function (a, d) { return a + d.total; }, 0);
+  $('prSensores').textContent = on;
+  barras($('prHoras'), p.porHora, p.porHora.map(function (_, h) { return h; }));
+  barras($('prDias'), p.dias.map(function (d) { return d.total; }), p.dias.map(function (d) {
+    return ['dom', 'seg', 'ter', 'qua', 'qui', 'sex', 'sáb'][new Date(d.dia + 'T12:00').getDay()];
+  }));
+  $('prLista').innerHTML = p.sensores.length ? '' : 'Nenhum sensor enviou sinal ainda.';
+  p.sensores.forEach(function (s) {
+    var d = document.createElement('div'); d.className = 'sensor';
+    d.innerHTML = '<span class="dot ' + (!s.online ? 'off' : s.movimento ? 'mov' : '') + '"></span><b></b> <span class="mut"></span>';
+    d.querySelector('b').textContent = s.nome;
+    d.querySelector('.mut').textContent = (!s.online ? 'offline' : s.movimento ? 'movimento' : 'parado') +
+      (s.intensidade != null ? ' · intensidade ' + s.intensidade : '') + ' · último sinal ' + quando(s.visto);
+    $('prLista').appendChild(d);
+  });
+  var a = p.alarme;
+  $('prDisparo').hidden = !a.disparadoEm; $('prSilenciar').hidden = !a.disparadoEm;
+  if (a.disparadoEm) $('prDisparo').textContent = '🚨 Alarme disparado: movimento ' + quando(a.disparadoEm);
+  if (!prEditando) {
+    $('alArmado').checked = a.armado; $('alAuto').checked = a.auto; $('alDe').value = a.de; $('alAte').value = a.ate;
+    $('alWebhook').value = a.webhook; $('prIntervalo').value = p.intervaloVisita;
+  }
+  if (p.urlEvento) {
+    $('prCfg').textContent = 'PAINEL_IP    = "' + p.ip + '"\nPAINEL_PORTA = ' + p.porta + '\nTOKEN        = "' + p.token + '"';
+    $('prUrl').textContent = p.urlEvento + '?k=' + p.token + '&sensor=roteador&movimento=1';
+    $('prCsv').href = '/api/presenca/visitas.csv?k=' + p.token;
+  }
+}
+function carregarPresenca() { return api('GET', '/api/presenca').then(mostrarPresenca).catch(function () {}); }
+$('presenca').addEventListener('input', function () { prEditando = true; });
+$('prSalvar').onclick = function () {
+  api('PUT', '/api/presenca', {
+    intervaloVisita: $('prIntervalo').value,
+    alarme: { armado: $('alArmado').checked, auto: $('alAuto').checked, de: $('alDe').value, ate: $('alAte').value, webhook: $('alWebhook').value },
+  }).then(function () { prEditando = false; return carregarPresenca(); }).then(function () { alert('Salvo!'); }).catch(alerta);
+};
+$('prSilenciar').onclick = function () { api('PUT', '/api/presenca', { silenciar: true }).then(carregarPresenca).catch(alerta); };
+carregarPresenca();
+setInterval(carregarPresenca, 3000);
 
 setupForm($('form'), carregar);
 carregar();
